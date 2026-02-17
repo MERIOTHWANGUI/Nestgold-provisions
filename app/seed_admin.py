@@ -1,31 +1,18 @@
-from app import create_app, db
-from app.models import User
 import os
+from app import create_app, db
+from app.models import User  # Make sure your User model has 'username' and 'set_password'
 
 app = create_app()
 
 with app.app_context():
-    existing_admin = User.query.filter_by(role="admin").first()
+    username = os.getenv("ADMIN_USERNAME")
+    password = os.getenv("ADMIN_PASSWORD")
 
-    if existing_admin:
-        print("Admin already exists.")
-    else:
-        username = os.environ.get("ADMIN_USERNAME")
-        email = os.environ.get("ADMIN_EMAIL")
-        password = os.environ.get("ADMIN_PASSWORD")
-
-        if not username or not email or not password:
-            raise Exception("Missing ADMIN_* environment variables")
-
-        admin = User(
-            username=username,
-            email=email,
-            role="admin"
-        )
-
-        admin.set_password(password)
-
+    if not User.query.filter_by(username=username).first():
+        admin = User(username=username, role="admin")
+        admin.set_password(password)  # Assuming your User model has this method
         db.session.add(admin)
         db.session.commit()
-
-        print("Admin created successfully.")
+        print(f"Admin user '{username}' created successfully.")
+    else:
+        print(f"Admin user '{username}' already exists.")
