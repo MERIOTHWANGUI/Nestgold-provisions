@@ -40,9 +40,11 @@
                 <th>ID</th>
                 <th>Name</th>
                 <th>Phone</th>
+                <th>Location</th>
                 <th>Plan</th>
                 <th>Status</th>
                 <th>Next Delivery</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -51,6 +53,7 @@
                 <td>{{ sub.id }}</td>
                 <td>{{ sub.name }}</td>
                 <td>{{ sub.phone }}</td>
+                <td>{{ sub.location }}</td>
                 <td>{{ sub.plan.name }}</td>
                 <td>
                     <span class="badge bg-{% if sub.status == 'Active' %}success{% elif sub.status == 'Pending' %}warning{% else %}danger{% endif %}">
@@ -58,6 +61,16 @@
                     </span>
                 </td>
                 <td>{{ sub.next_delivery_date.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin.delete_subscription', sub_id=sub.id) }}" style="display:inline;">
+                        {{ delete_form.hidden_tag() }}
+                        <button type="submit"
+                                class="btn btn-sm btn-danger"
+                                onclick="return confirm('Delete this subscription? This action cannot be undone.');">
+                            Delete
+                        </button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

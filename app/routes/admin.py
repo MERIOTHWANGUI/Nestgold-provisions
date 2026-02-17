@@ -2,11 +2,11 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.models import db, SubscriptionPlan, Subscription
+from sqlalchemy.exc import IntegrityError
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, IntegerField, BooleanField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, NumberRange, Length
 from markupsafe import escape
-from flask_wtf import FlaskForm
 from wtforms import SubmitField
 
 
@@ -52,7 +52,14 @@ def dashboard():
     subscriptions = Subscription.query.order_by(Subscription.start_date.desc()).all()
     active = Subscription.query.filter_by(status='Active').count()
     pending = Subscription.query.filter_by(status='Pending').count()
-    return render_template('admin/dashboard.html', subscriptions=subscriptions, active=active, pending=pending)
+    delete_form = DeleteForm()
+    return render_template(
+        'admin/dashboard.html',
+        subscriptions=subscriptions,
+        active=active,
+        pending=pending,
+        delete_form=delete_form
+    )
 
 @admin_bp.route('/plans')
 def plans():
@@ -128,5 +135,29 @@ def delete_plan(plan_id):
 
     flash(f'Plan "{plan.name}" has been deleted permanently.', 'success')
     return redirect(url_for('admin.plans'))
+
+
+@admin_bp.route('/subscriptions/delete/<int:sub_id>', methods=['POST'])
+def delete_subscription(sub_id):
+    form = DeleteForm()
+
+    if not form.validate_on_submit():
+        flash("Bad request (CSRF validation failed).", "danger")
+        return redirect(url_for('admin.dashboard'))
+
+    subscription = Subscription.query.get_or_404(sub_id)
+
+    try:
+        db.session.delete(subscription)
+        db.session.commit()
+        flash(f'Subscription #{sub_id} deleted successfully.', 'success')
+    except IntegrityError:
+        db.session.rollback()
+        flash(
+            'Cannot delete this subscription because related records exist (payments/deliveries).',
+            'warning'
+        )
+
+    return redirect(url_for('admin.dashboard'))
 
 
