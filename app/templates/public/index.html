@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}NestGold Provisions - Fresh Weekly Egg Delivery{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+    <!-- Hero Section -->
+   <!-- Hero Section -->
+<section class="container py-5">
+    <div class="row align-items-center g-5">
+
+        <!-- Text Column -->
+        <div class="col-lg-6">
+            <h1 class="display-5 fw-bold mb-3">
+                Fresh Eggs. Delivered Weekly.
+            </h1>
+
+            <p class="lead text-muted mb-4">
+                NestGold Provisions was created to give families access to guaranteed fresh, farm-raised eggs delivered weekly — without uncertainty, or compromise.
+
+We believe protein should be pure, reliable, and accessible.
+
+            </p>
+
+            <div class="d-flex gap-3 flex-wrap">
+                <a href="#plans"
+                   class="btn btn-lg fw-bold text-white"
+                   style="background: linear-gradient(90deg, #ff6b00, #ff8c00); border:none;">
+                    Choose a Plan →
+                </a>
+
+
+            </div>
+        </div>
+
+        <!-- Image Column -->
+        <div class="col-lg-6 text-center">
+            <img src="{{ url_for('static', filename='images/basketegg.png') }}"
+                 alt="Fresh eggs in tray"
+                 class="img-fluid rounded-4 shadow-sm"
+                 style="max-height: 420px;">
+        </div>
+
+    </div>
+</section>
+
+
+    <!-- Products Showcase -->
+
+
+    <!-- Plans Section -->
+    <div class="text-center mb-5" id="plans">
+    <h2 class="fw-bold">Our Plans</h2>
+    <div class="section-divider"></div>
+</div>
+
+    <div class="row g-4 justify-content-center">
+        {% for plan in plans %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 shadow-lg border-0 {% if plan.is_recommended %}border-warning border-3{% endif %}">
+                {% if plan.is_recommended %}
+                <div class="position-absolute top-0 end-0 mt-3 me-3">
+                    <span class="badge text-dark fs-6 px-3 py-2" style="background: linear-gradient(90deg,#ff6b00,#ff8c00);">
+                        Most Popular
+                    </span>
+                </div>
+                {% endif %}
+                <div class="card-body text-center p-5">
+                    <h2 class="card-title fw-bold mb-3">{{ plan.name }}</h2>
+                    <h3 class="display-5 fw-bold text-warning mb-2">
+                        KES {{ plan.price_per_month|round(0)|int }}
+                    </h3>
+                    <p class="text-muted mb-4">per month</p>
+                    <h5 class="mb-4">{{ plan.trays_per_week }} tray{% if plan.trays_per_week > 1 %}s{% endif %} per week</h5>
+                    {% if plan.description %}
+                    <p class="text-muted mb-4">{{ plan.description }}</p>
+                    {% endif %}
+                    <a href="{{ url_for('subscription.new', plan_id=plan.id) }}"
+   class="btn btn-{{ plan.button_color }} btn-lg w-100 py-3 fw-bold plan-btn">
+   Subscribe Now
+</a>
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <!-- for -->
+    <!-- Trust & Delivery Section -->
+<section class="py-5" style="background-color: #fff8f2;">
+    <div class="container">
+        <div class="row text-center g-5">
+
+            <!-- Delivery -->
+            <div class="col-md-4 trust-box">
+                <div class="trust-icon">
+                    <i class="bi bi-truck"></i>
+                </div>
+                <h5 class="fw-bold mt-4">Fast Weekly Delivery</h5>
+                <p class="text-muted">
+                    Fresh trays delivered directly to your home —
+                    always on schedule.
+                </p>
+            </div>
+
+            <!-- Location -->
+            <div class="col-md-4 trust-box">
+                <div class="trust-icon">
+                    <i class="bi bi-geo-alt"></i>
+                </div>
+                <h5 class="fw-bold mt-4">Delivery available</h5>
+                <p class="text-muted">
+                    Reliable doorstep delivery in multiple neighborhoods.
+                </p>
+            </div>
+
+            <!-- Payment -->
+            <div class="col-md-4 trust-box">
+                <div class="trust-icon">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <h5 class="fw-bold mt-4">Secure M-Pesa Payments</h5>
+                <p class="text-muted">
+                    Safe, instant, and fully secure checkout.
+                </p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+
+</div>
+{% endblock %}

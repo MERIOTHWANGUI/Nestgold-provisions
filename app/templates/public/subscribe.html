@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Subscribe to {{ plan.name }} - NestGold Provisions{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="text-center mb-5">
+                <h1 class="fw-bold">Subscribe to {{ plan.name }}</h1>
+                <p class="lead text-muted">
+                    {{ plan.trays_per_week }} tray{% if plan.trays_per_week > 1 %}s{% endif %} per week
+                    for only KES {{ plan.price_per_month }}/month
+                </p>
+                {% if plan.description %}
+                <p class="text-muted">{{ plan.description }}</p>
+                {% endif %}
+            </div>
+
+            <div class="card shadow-lg border-0 p-5">
+                <form method="POST" action="{{ url_for('subscription.process') }}" class="needs-validation" novalidate>
+                    <input type="hidden" name="plan_id" value="{{ plan.id }}">
+
+                    <div class="mb-4">
+                        <label for="name" class="form-label fw-bold">Full Name</label>
+                        <input type="text" class="form-control form-control-lg" id="name" name="name" required placeholder="e.g. Merioth Wangui">
+                        <div class="invalid-feedback">Please enter your name.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="phone" class="form-label fw-bold">Phone Number (M-Pesa)</label>
+                        <input type="tel" class="form-control form-control-lg" id="phone" name="phone" pattern="0[17][0-9]{8}" required placeholder="0712345678">
+                        <div class="form-text text-muted">We'll send the payment prompt here.</div>
+                        <div class="invalid-feedback">Valid Kenyan number (e.g. 0712345678).</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="location" class="form-label fw-bold">Delivery Location</label>
+                        <input type="text" class="form-control form-control-lg" id="location" name="location" required placeholder="e.g. Ngong Road, Karen">
+                        <div class="invalid-feedback">Please enter your delivery location.</div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label for="delivery_day" class="form-label fw-bold">Preferred Delivery Day</label>
+                        <select class="form-select form-select-lg" id="delivery_day" name="delivery_day" required>
+                            <option value="">Select day...</option>
+                            <option value="Monday">Monday</option>
+                            <option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option>
+                            <option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a delivery day.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-lg w-100 py-3 fw-bold">
+                        Proceed to Payment (KES {{ plan.price_per_month }})
+                    </button>
+                </form>
+            </div>
+
+            <div class="text-center mt-5">
+                <small class="text-muted">
+                    Secure M-Pesa payment • Cancel anytime • Fresh eggs guaranteed
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}

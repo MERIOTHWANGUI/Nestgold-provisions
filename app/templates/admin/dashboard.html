@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Admin Dashboard</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Active Subscriptions</h5>
+                    <h2>{{ active }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Pending Subscriptions</h5>
+                    <h2>{{ pending }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5>Total Subscriptions</h5>
+                    <h2>{{ subscriptions|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Subscriptions List</h3>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Next Delivery</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in subscriptions %}
+            <tr>
+                <td>{{ sub.id }}</td>
+                <td>{{ sub.name }}</td>
+                <td>{{ sub.phone }}</td>
+                <td>{{ sub.plan.name }}</td>
+                <td>
+                    <span class="badge bg-{% if sub.status == 'Active' %}success{% elif sub.status == 'Pending' %}warning{% else %}danger{% endif %}">
+                        {{ sub.status }}
+                    </span>
+                </td>
+                <td>{{ sub.next_delivery_date.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url_for('admin.plans') }}" class="btn btn-primary mt-4">Manage Plans</a>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger mt-4">Logout</a>
+</div>
+{% endblock %}

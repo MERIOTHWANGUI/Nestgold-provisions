@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}About Us - NestGold Provisions{% endblock %}
+
+{% block content %}
+<section class="py-5">
+    <div class="container">
+
+        <div class="text-center mb-5">
+            <h1 class="fw-bold">About NestGold Provisions</h1>
+            <div class="section-divider"></div>
+        </div>
+
+        <div class="row align-items-center g-5">
+
+            <!-- Image -->
+            <div class="col-lg-6 text-center">
+                <img src="{{ url_for('static', filename='images/eggscontainer.png') }}"
+                     class="img-fluid rounded-4 shadow-sm"
+                     style="max-height: 400px;"
+                     alt="Egg farm">
+            </div>
+
+            <!-- Text -->
+            <div class="col-lg-6">
+                <h4 class="fw-bold mb-3">Fresh. Reliable. Local.</h4>
+                <p class="text-muted">
+                    NestGold Provisions delivers farm-raised eggs directly
+                    to  your homes. Our focus is simple:
+                    consistent quality and dependable weekly delivery.
+                </p>
+
+                <p class="text-muted">
+                    We work closely with trusted local farms to ensure
+                    every tray meets our freshness standards.
+                </p>
+
+                <ul class="list-unstyled mt-4">
+                    <li class="mb-2">✔ Carefully sourced eggs</li>
+                    <li class="mb-2">✔ Flexible subscription plans</li>
+                    <li class="mb-2">✔ Reliable doorstep delivery</li>
+                </ul>
+                <div class="d-flex gap-3 flex-wrap">
+                <a href="{{ url_for('main.index') }}"
+                   class="btn btn-lg fw-bold text-white"
+                   style="background: linear-gradient(90deg, #ff6b00, #ff8c00); border:none;">
+                    Choose a Plan →
+                </a>
+
+
+            </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

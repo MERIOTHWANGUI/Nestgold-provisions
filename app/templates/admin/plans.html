@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Plans - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Manage Subscription Plans</h1>
+
+    <a href="{{ url_for('admin.add_plan') }}" class="btn btn-success mb-4">
+        + Add New Plan
+    </a>
+
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Trays / Week</th>
+                <th>Price / Month</th>
+                <th>Description</th>
+                <th>Recommended</th>
+                <th>Button Color</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for plan in plans %}
+            <tr>
+                <td>{{ plan.id }}</td>
+                <td>{{ plan.name }}</td>
+                <td>{{ plan.trays_per_week }}</td>
+                <td>{{ plan.price_per_month }}</td>
+                <td>{{ plan.description }}</td>
+                <td>{{ 'Yes' if plan.is_recommended else 'No' }}</td>
+                <td>{{ plan.button_color or 'warning' }}</td>
+                <td>
+                    <!-- Edit button -->
+                    <a href="{{ url_for('admin.edit_plan', plan_id=plan.id) }}" class="btn btn-sm btn-primary">
+                        Edit
+                    </a>
+
+                    <!-- Delete form -->
+       <td>
+
+
+    <form method="POST" action="{{ url_for('admin.delete_plan', plan_id=plan.id) }}" style="display:inline;">
+        {{ delete_form.hidden_tag() }}
+        <button type="submit"
+                onclick="return confirm('Delete this plan permanently? This action cannot be undone.');"
+                class="btn btn-sm btn-danger">
+            Delete
+        </button>
+    </form>
+</td>
+
+
+
+
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center text-muted">
+                    No plans created yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary mt-3">
+        Back to Dashboard
+    </a>
+</div>
+{% endblock %}

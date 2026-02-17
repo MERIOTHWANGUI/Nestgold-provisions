@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Pending - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5 text-center">
+    <h2>Payment Prompt Sent!</h2>
+    <p class="lead">Check your phone for the M-Pesa STK push from {{ checkout_id }}.</p>
+    <div class="spinner-border text-warning my-5" role="status" style="width: 4rem; height: 4rem;">
+        <span class="visually-hidden">Waiting...</span>
+    </div>
+    <p>Complete the payment on your phone. This page will update automatically when confirmed.</p>
+
+    <script>
+        const checkoutId = "{{ checkout_id }}";
+        const interval = setInterval(() => {
+            fetch(`/subscribe/check/${checkoutId}`)
+                .then(r => r.json())
+                .then(data => {
+                    console.log('Poll status:', data.status);
+                    if (data.status === 'completed') {
+                        window.location.href = '/success';
+                        clearInterval(interval);
+                    } else if (data.status === 'failed') {
+                        window.location.href = '/failed';
+                        clearInterval(interval);
+                    }
+                })
+                .catch(err => console.error('Polling error:', err));
+        }, 5000);  // every 5 seconds
+    </script>
+</div>
+{% endblock %}

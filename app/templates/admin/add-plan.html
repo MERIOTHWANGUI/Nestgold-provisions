@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Add Plan - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Add Subscription Plan</h1>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}  <!-- 🔑 CSRF token -->
+
+        <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.trays_per_week.label(class="form-label") }}
+            {{ form.trays_per_week(class="form-control") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.price_per_month.label(class="form-label") }}
+            {{ form.price_per_month(class="form-control", step="0.01") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-control") }}
+        </div>
+
+        <div class="form-check mb-3">
+            {{ form.is_recommended(class="form-check-input") }}
+            {{ form.is_recommended.label(class="form-check-label") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.button_color.label(class="form-label") }}
+            {{ form.button_color(class="form-select") }}
+        </div>
+
+        <button type="submit" class="btn btn-success">Save Plan</button>
+        <a href="{{ url_for('admin.plans') }}" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

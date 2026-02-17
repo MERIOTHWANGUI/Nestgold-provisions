@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Plan - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Delete Plan</h1>
+
+    <div class="alert alert-danger">
+        Are you sure you want to delete the plan:
+        <strong>{{ plan.name }}</strong>?
+    </div>
+
+    <form method="POST">
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{{ url_for('admin.plans') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
