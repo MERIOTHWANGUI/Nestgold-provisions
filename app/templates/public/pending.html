@@ -13,17 +13,28 @@
 
     <script>
         const checkoutId = "{{ checkout_id }}";
+        const successUrl = "{{ url_for('subscription.success') }}";
+        const failedUrl = "{{ url_for('subscription.failed') }}";
+        const pollTimeoutMs = 180000; // 3 minutes
+        const startedAt = Date.now();
+
         const interval = setInterval(() => {
             fetch(`/subscribe/check/${checkoutId}`)
                 .then(r => r.json())
                 .then(data => {
                     console.log('Poll status:', data.status);
                     if (data.status === 'completed') {
-                        window.location.href = '/success';
+                        window.location.href = successUrl;
                         clearInterval(interval);
                     } else if (data.status === 'failed') {
-                        window.location.href = '/failed';
+                        window.location.href = failedUrl;
                         clearInterval(interval);
+                    } else if (data.status === 'not_found') {
+                        clearInterval(interval);
+                        alert('We could not find this payment request. Please try again.');
+                    } else if (Date.now() - startedAt > pollTimeoutMs) {
+                        clearInterval(interval);
+                        alert('Payment confirmation is taking longer than expected. Please refresh or check again shortly.');
                     }
                 })
                 .catch(err => console.error('Polling error:', err));

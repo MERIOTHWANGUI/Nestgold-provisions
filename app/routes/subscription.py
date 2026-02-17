@@ -72,4 +72,23 @@ def pending(checkout_id):
 
 @sub_bp.route('/check/<checkout_id>')
 def check(checkout_id):
+    sub = Subscription.query.filter_by(checkout_request_id=checkout_id).first()
+    if not sub:
+        return jsonify({'status': 'not_found'})
+
+    status = (sub.status or '').lower()
+    if status == 'active':
+        return jsonify({'status': 'completed'})
+    if status in {'failed', 'cancelled', 'canceled'}:
+        return jsonify({'status': 'failed'})
     return jsonify({'status': 'pending'})
+
+
+@sub_bp.route('/success')
+def success():
+    return render_template('public/success.html')
+
+
+@sub_bp.route('/failed')
+def failed():
+    return render_template('public/failed.html')

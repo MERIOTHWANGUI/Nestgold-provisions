@@ -1,5 +1,6 @@
 # app/routes/payments.py
 from flask import Blueprint, request, jsonify
+from app import csrf
 from app.models import db, Subscription, Payment
 from app.services.sms import send_admin_sms, send_customer_confirmation
 from datetime import datetime
@@ -7,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 payments_bp = Blueprint('payments', __name__)
 
+@csrf.exempt
 @payments_bp.route('/payments/callback', methods=['POST'])
 @payments_bp.route('/mpesa_callback', methods=['POST'])
 @payments_bp.route('/callback', methods=['POST'])
