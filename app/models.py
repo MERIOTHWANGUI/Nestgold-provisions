@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from flask_login import UserMixin
+from werkzeug.security import check_password_hash, generate_password_hash
 from . import db
 
 
@@ -15,6 +16,16 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     subscriptions = db.relationship('Subscription', back_populates='user', lazy=True)
+
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+
+    def set_password(self, raw_password):
+        self.password_hash = generate_password_hash(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password_hash(self.password_hash, raw_password)
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -43,7 +54,7 @@ class Subscription(db.Model):
     __tablename__ = 'subscriptions'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # <-- make nullable
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plans.id'), nullable=False)
     start_date = db.Column(db.DateTime, nullable=False)
     next_delivery_date = db.Column(db.DateTime, nullable=False)

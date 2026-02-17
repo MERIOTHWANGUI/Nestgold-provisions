@@ -1,6 +1,5 @@
 # app/seed_admin.py
 import os
-from werkzeug.security import generate_password_hash
 from app.models import db, User
 from app import create_app
 
@@ -21,7 +20,7 @@ with app.app_context():
     if not admin:
         # Create new admin
         admin = User(username=username, role="admin")
-        admin.password_hash = generate_password_hash(password)  # Use your model's password field
+        admin.set_password(password)
         db.session.add(admin)
         db.session.commit()
         print(f"[✅] Admin user '{username}' created successfully.")

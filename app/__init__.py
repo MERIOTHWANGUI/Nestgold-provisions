@@ -1,6 +1,7 @@
 # app/__init__.py
 from flask import Flask
 from flask_login import LoginManager
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
@@ -11,6 +12,7 @@ load_dotenv()
 
 # Extensions
 db = SQLAlchemy()
+migrate = Migrate()
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 csrf = CSRFProtect()
@@ -37,6 +39,7 @@ def create_app():
     # Initialize extensions
     # ------------------
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
 
@@ -62,11 +65,5 @@ def create_app():
     app.register_blueprint(payments_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
-
-    # ------------------
-    # Create tables
-    # ------------------
-    with app.app_context():
-        db.create_all()
 
     return app
