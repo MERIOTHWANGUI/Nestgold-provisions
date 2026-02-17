@@ -14,7 +14,7 @@ class User(db.Model, UserMixin):
     role = db.Column(db.String(50), default='customer', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    subscriptions = db.relationship('Subscription', backref='user', lazy=True)
+    subscriptions = db.relationship('Subscription', back_populates='user', lazy=True)
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -33,7 +33,7 @@ class SubscriptionPlan(db.Model):
     is_recommended = db.Column(db.Boolean, default=False, nullable=False)
     button_color = db.Column(db.String(20), default='warning')  # bootstrap color: warning, primary, success etc.
 
-    subscriptions = db.relationship('Subscription', backref='plan', lazy=True)
+    subscriptions = db.relationship('Subscription', back_populates='plan', lazy=True)
 
     def __repr__(self):
         return f'<SubscriptionPlan {self.name}>'
@@ -43,22 +43,19 @@ class Subscription(db.Model):
     __tablename__ = 'subscriptions'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # <-- make nullable
     plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plans.id'), nullable=False)
-
-    start_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
     next_delivery_date = db.Column(db.DateTime, nullable=False)
-
-    status = db.Column(db.String(50), default='Pending', nullable=False, index=True)
+    status = db.Column(db.String(20), nullable=False)
     preferred_delivery_day = db.Column(db.String(20), nullable=False)
+    checkout_request_id = db.Column(db.String(50))
+    phone = db.Column(db.String(20), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(200), nullable=False)
 
-    checkout_request_id = db.Column(db.String(100))
-    phone = db.Column(db.String(20), nullable=False, index=True)
-    name = db.Column(db.String(150), nullable=False)
-    location = db.Column(db.String(255), nullable=False)
-
-    payments = db.relationship('Payment', backref='subscription', lazy=True)
-    deliveries = db.relationship('Delivery', backref='subscription', lazy=True)
+    plan = db.relationship('SubscriptionPlan', back_populates='subscriptions')
+    user = db.relationship('User', back_populates='subscriptions')
 
     def __repr__(self):
         return f'<Subscription {self.id} - {self.status}>'
