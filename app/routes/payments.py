@@ -1,7 +1,12 @@
 # app/routes/payments.py
 from flask import Blueprint, request, jsonify
 from app import csrf
-from app.models import db, Subscription, Payment
+from app.models import (
+    Payment,
+    PaymentStatus,
+    Subscription,
+    db,
+)
 from app.services.sms import send_admin_sms, send_customer_confirmation
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
@@ -17,50 +22,69 @@ def callback():
     print("MPESA CALLBACK RECEIVED:", data)
 
     try:
-        stk = data['Body']['stkCallback']
-        checkout_id = stk['CheckoutRequestID']
-        result_code = stk['ResultCode']
-        result_code_int = int(result_code)
+        stk = (data or {}).get('Body', {}).get('stkCallback', {})
+        checkout_id = stk.get('CheckoutRequestID')
+        result_code = stk.get('ResultCode')
+        result_desc = stk.get('ResultDesc')
+        try:
+            result_code_int = int(result_code)
+        except (TypeError, ValueError):
+            result_code_int = -1
 
-        # Find subscription by checkout_request_id
+        if not checkout_id:
+            raise ValueError("Missing CheckoutRequestID in callback")
+
         sub = Subscription.query.filter_by(checkout_request_id=checkout_id).first()
+        payment = Payment.query.filter_by(checkout_request_id=checkout_id).first()
+        now = datetime.utcnow()
 
-        if sub:
-            if result_code_int == 0:
-                # Payment success
-                sub.status = "Active"
+        if not payment:
+            payment = Payment(
+                subscription_id=sub.id if sub else None,
+                amount=sub.plan.price_per_month if sub else 0.0,
+                checkout_request_id=checkout_id,
+                payment_date=now,
+                status=PaymentStatus.PENDING.value,
+            )
+            db.session.add(payment)
+        elif sub and payment.subscription_id is None:
+            payment.subscription_id = sub.id
+            payment.amount = sub.plan.price_per_month
 
-                receipt_number = None
-                callback_items = stk.get('CallbackMetadata', {}).get('Item', [])
-                for item in callback_items:
-                    if item.get('Name') == 'MpesaReceiptNumber':
-                        receipt_number = item.get('Value')
-                        break
+        if result_code_int == 0:
+            receipt_number = None
+            callback_items = stk.get('CallbackMetadata', {}).get('Item', []) or []
+            for item in callback_items:
+                if item.get('Name') == 'MpesaReceiptNumber':
+                    receipt_number = item.get('Value')
+                    break
 
-                existing_payment = Payment.query.filter_by(checkout_request_id=checkout_id).first()
-                if not existing_payment:
-                    payment = Payment(
-                        subscription_id=sub.id,
-                        amount=sub.plan.price_per_month,
-                        status="Completed",
-                        payment_date=datetime.utcnow(),
-                        checkout_request_id=checkout_id,
-                        mpesa_receipt=receipt_number
-                    )
-                    db.session.add(payment)
+            first_success = payment.status != PaymentStatus.COMPLETED.value
+            payment.status = PaymentStatus.COMPLETED.value
+            payment.payment_date = now
+            payment.mpesa_receipt = receipt_number
 
-                db.session.commit()
-                print(f"Subscription {sub.id} activated, Payment saved")
+            if sub and first_success:
+                # Idempotent extension: only extend period first time this checkout succeeds.
+                sub.apply_successful_payment(now=now)
+            elif sub:
+                sub.sync_status_from_period(now=now)
 
-                # Send SMS
+            db.session.commit()
+            if sub and first_success:
+                print(f"Subscription {sub.id} extended and payment recorded")
                 send_admin_sms(sub)
                 send_customer_confirmation(sub)
-            else:
-                sub.status = "Failed"
-                db.session.commit()
-
         else:
-            print("No matching subscription found for checkout_id:", checkout_id)
+            if result_code_int in Subscription.CANCELLED_RESULT_CODES:
+                payment.status = PaymentStatus.CANCELLED.value
+            else:
+                payment.status = PaymentStatus.FAILED.value
+            payment.payment_date = now
+
+            if sub:
+                sub.mark_payment_failed(result_code=result_code_int, result_desc=result_desc)
+            db.session.commit()
 
         return jsonify({"ResultCode": 0, "ResultDesc": "Accepted"}), 200
 

@@ -1,7 +1,9 @@
 # app/routes/admin.py
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from datetime import datetime
+
+from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import login_required, current_user
-from app.models import db, SubscriptionPlan, Subscription
+from app.models import Subscription, SubscriptionPlan, SubscriptionStatus, db
 from sqlalchemy.exc import IntegrityError
 from flask_wtf import FlaskForm
 from wtforms import StringField, FloatField, IntegerField, BooleanField, SelectField, TextAreaField
@@ -49,9 +51,10 @@ class PlanForm(FlaskForm):
 # -----------------------------
 @admin_bp.route('/dashboard')
 def dashboard():
+    now = datetime.utcnow()
     subscriptions = Subscription.query.order_by(Subscription.start_date.desc()).all()
-    active = Subscription.query.filter_by(status='Active').count()
-    pending = Subscription.query.filter_by(status='Pending').count()
+    active = Subscription.query.filter(Subscription.current_period_end > now).count()
+    pending = Subscription.query.filter_by(status=SubscriptionStatus.PENDING.value).count()
     delete_form = DeleteForm()
     return render_template(
         'admin/dashboard.html',

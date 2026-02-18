@@ -44,6 +44,7 @@
                 <th>Plan</th>
                 <th>Status</th>
                 <th>Next Delivery</th>
+                <th>Access Until</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -56,11 +57,13 @@
                 <td>{{ sub.location }}</td>
                 <td>{{ sub.plan.name }}</td>
                 <td>
-                    <span class="badge bg-{% if sub.status == 'Active' %}success{% elif sub.status == 'Pending' %}warning{% else %}danger{% endif %}">
-                        {{ sub.status }}
+                    {% set effective = sub.effective_status %}
+                    <span class="badge bg-{% if effective == 'Active' %}success{% elif effective == 'Pending' %}warning{% elif effective == 'Expired' %}secondary{% else %}danger{% endif %}">
+                        {{ effective }}
                     </span>
                 </td>
                 <td>{{ sub.next_delivery_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ sub.current_period_end.strftime('%Y-%m-%d') if sub.current_period_end else '-' }}</td>
                 <td>
                     <form method="POST" action="{{ url_for('admin.delete_subscription', sub_id=sub.id) }}" style="display:inline;">
                         {{ delete_form.hidden_tag() }}
