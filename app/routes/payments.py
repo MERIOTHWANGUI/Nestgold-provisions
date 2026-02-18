@@ -45,6 +45,7 @@ def callback():
                 checkout_request_id=checkout_id,
                 payment_date=now,
                 status=PaymentStatus.PENDING.value,
+                payment_method='M-Pesa',
             )
             db.session.add(payment)
         elif sub and payment.subscription_id is None:
@@ -63,10 +64,14 @@ def callback():
             payment.status = PaymentStatus.COMPLETED.value
             payment.payment_date = now
             payment.mpesa_receipt = receipt_number
+            payment.payment_method = 'M-Pesa'
 
             if sub and first_success:
                 # Idempotent extension: only extend period first time this checkout succeeds.
                 sub.apply_successful_payment(now=now)
+                monthly_trays = sub.plan.trays_per_week * 4
+                sub.trays_allocated_total = (sub.trays_allocated_total or 0) + monthly_trays
+                sub.trays_remaining = (sub.trays_remaining or 0) + monthly_trays
             elif sub:
                 sub.sync_status_from_period(now=now)
 

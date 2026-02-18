@@ -13,7 +13,7 @@
 
     <script>
         const checkoutId = "{{ checkout_id }}";
-        const successUrl = "{{ url_for('subscription.success') }}";
+        const successUrl = "{{ url_for('subscription.success') }}?checkout_id={{ checkout_id }}";
         const failedUrl = "{{ url_for('subscription.failed') }}";
         const pollTimeoutMs = 180000; // 3 minutes
         const startedAt = Date.now();

@@ -27,59 +27,202 @@
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h5>Total Subscriptions</h5>
-                    <h2>{{ subscriptions|length }}</h2>
+                    <h2>{{ pagination.total }}</h2>
                 </div>
             </div>
         </div>
     </div>
 
-    <h3>Subscriptions List</h3>
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Location</th>
-                <th>Plan</th>
-                <th>Status</th>
-                <th>Next Delivery</th>
-                <th>Access Until</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for sub in subscriptions %}
-            <tr>
-                <td>{{ sub.id }}</td>
-                <td>{{ sub.name }}</td>
-                <td>{{ sub.phone }}</td>
-                <td>{{ sub.location }}</td>
-                <td>{{ sub.plan.name }}</td>
-                <td>
-                    {% set effective = sub.effective_status %}
-                    <span class="badge bg-{% if effective == 'Active' %}success{% elif effective == 'Pending' %}warning{% elif effective == 'Expired' %}secondary{% else %}danger{% endif %}">
-                        {{ effective }}
-                    </span>
-                </td>
-                <td>{{ sub.next_delivery_date.strftime('%Y-%m-%d') }}</td>
-                <td>{{ sub.current_period_end.strftime('%Y-%m-%d') if sub.current_period_end else '-' }}</td>
-                <td>
-                    <form method="POST" action="{{ url_for('admin.delete_subscription', sub_id=sub.id) }}" style="display:inline;">
-                        {{ delete_form.hidden_tag() }}
-                        <button type="submit"
-                                class="btn btn-sm btn-danger"
-                                onclick="return confirm('Delete this subscription? This action cannot be undone.');">
-                            Delete
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <form method="GET" class="row g-2 mb-4 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" name="status">
+                <option value="">All</option>
+                <option value="active" {% if selected_filters.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="pending" {% if selected_filters.status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="failed" {% if selected_filters.status == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="expired" {% if selected_filters.status == 'expired' %}selected{% endif %}>Expired</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Plan</label>
+            <select class="form-select" name="plan_id">
+                <option value="">All</option>
+                {% for plan in plans %}
+                <option value="{{ plan.id }}" {% if selected_filters.plan_id == plan.id %}selected{% endif %}>{{ plan.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Phone</label>
+            <input class="form-control" type="text" name="phone" value="{{ selected_filters.phone or '' }}" placeholder="07...">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Expiry</label>
+            <select class="form-select" name="expiry">
+                <option value="">All</option>
+                <option value="overdue" {% if selected_filters.expiry == 'overdue' %}selected{% endif %}>Overdue</option>
+                <option value="0_7" {% if selected_filters.expiry == '0_7' %}selected{% endif %}>0-7 days</option>
+                <option value="8_30" {% if selected_filters.expiry == '8_30' %}selected{% endif %}>8-30 days</option>
+                <option value="gt_30" {% if selected_filters.expiry == 'gt_30' %}selected{% endif %}>30+ days</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Sort</label>
+            <select class="form-select" name="sort_by">
+                <option value="created" {% if sort_state.sort_by == 'created' %}selected{% endif %}>Created</option>
+                <option value="next_delivery" {% if sort_state.sort_by == 'next_delivery' %}selected{% endif %}>Next Delivery</option>
+                <option value="amount_paid" {% if sort_state.sort_by == 'amount_paid' %}selected{% endif %}>Amount Paid</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label">Dir</label>
+            <select class="form-select" name="sort_dir">
+                <option value="desc" {% if sort_state.sort_dir == 'desc' %}selected{% endif %}>Desc</option>
+                <option value="asc" {% if sort_state.sort_dir == 'asc' %}selected{% endif %}>Asc</option>
+            </select>
+        </div>
+        <div class="col-md-1 d-grid">
+            <button class="btn btn-primary" type="submit">Apply</button>
+        </div>
+    </form>
 
-    <a href="{{ url_for('admin.plans') }}" class="btn btn-primary mt-4">Manage Plans</a>
-    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger mt-4">Logout</a>
+    <h3>Subscriptions List</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Next Delivery</th>
+                    <th>Days Until Expiry</th>
+                    <th>Amount Paid</th>
+                    <th>Method</th>
+                    <th>Payment Ref / CheckoutID</th>
+                    <th>Last Payment</th>
+                    <th>Reminders Sent</th>
+                    <th>Delivery Count / Trays Remaining</th>
+                    <th>Duplicate</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subscriptions %}
+                {# Flag row in red if failed or overdue expiry #}
+                <tr class="{% if sub.display_status == 'failed' or (sub.days_until_expiry is not none and sub.days_until_expiry < 0) %}table-danger{% endif %}">
+                    <td>{{ sub.id }}</td>
+                    <td>{{ sub.name }}</td>
+                    <td>{{ sub.phone }}</td>
+                    <td>{{ sub.location }}</td>
+                    <td>{{ sub.plan_name }}</td>
+                    <td>
+                        {# Badge column for quick status recognition #}
+                        <span class="badge {% if sub.display_status == 'active' %}bg-success{% elif sub.display_status == 'pending' %}bg-warning text-dark{% elif sub.display_status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ sub.display_status|capitalize }}
+                        </span>
+                    </td>
+                    <td>{{ sub.next_delivery_date.strftime('%Y-%m-%d') if sub.next_delivery_date else '-' }}</td>
+                    <td>
+                        {% if sub.days_until_expiry is not none %}
+                            <span class="{% if sub.days_until_expiry < 0 %}text-danger fw-bold{% endif %}">{{ sub.days_until_expiry }}</span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>KES {{ '%.2f'|format(sub.amount_paid_total) }}</td>
+                    <td>{{ sub.payment_method }}</td>
+                    <td>
+                        {# Tooltip column: show full reference on hover #}
+                        <span data-bs-toggle="tooltip" title="Checkout: {{ sub.checkout_request_id or '-' }}">
+                            {{ sub.payment_reference }}
+                        </span>
+                    </td>
+                    <td>{{ sub.last_payment_date.strftime('%Y-%m-%d %H:%M') if sub.last_payment_date else '-' }}</td>
+                    <td>
+                        {# Badge column for reminders with tooltip details #}
+                        <span class="badge {% if sub.reminders_count > 0 %}bg-info text-dark{% else %}bg-light text-dark border{% endif %}"
+                              data-bs-toggle="tooltip"
+                              title="{{ sub.last_reminder_summary }}">
+                            {{ sub.reminders_count }}
+                        </span>
+                    </td>
+                    <td>{{ sub.delivery_count }} / {{ sub.trays_remaining }}</td>
+                    <td>
+                        {# Warning flag if same phone has multiple active subscriptions #}
+                        {% if sub.is_duplicate_active_phone %}
+                            <span class="text-warning fs-5" data-bs-toggle="tooltip" title="Phone has multiple active subscriptions.">!</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="d-flex flex-wrap gap-1">
+                        {# Actionable column: edit/cancel/retry/reminder/delete #}
+                        <a href="{{ url_for('admin.edit_subscription', sub_id=sub.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+
+                        <form method="POST" action="{{ url_for('admin.cancel_subscription', sub_id=sub.id) }}">
+                            {{ action_form.hidden_tag() }}
+                            <button type="submit" class="btn btn-sm btn-outline-warning">Cancel</button>
+                        </form>
+
+                        <form method="POST" action="{{ url_for('admin.retry_payment', sub_id=sub.id) }}">
+                            {{ action_form.hidden_tag() }}
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Retry Payment</button>
+                        </form>
+
+                        <form method="POST" action="{{ url_for('admin.send_reminder', sub_id=sub.id) }}">
+                            {{ action_form.hidden_tag() }}
+                            <button type="submit" class="btn btn-sm btn-outline-info">Send Reminder</button>
+                        </form>
+
+                        <form method="POST" action="{{ url_for('admin.delete_subscription', sub_id=sub.id) }}">
+                            {{ delete_form.hidden_tag() }}
+                            <button type="submit"
+                                    class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Delete this subscription? This action cannot be undone.');">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <nav aria-label="Dashboard pagination">
+        <ul class="pagination">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link"
+                   href="{{ url_for('admin.dashboard', page=pagination.page-1, per_page=pagination.per_page, status=selected_filters.status, plan_id=selected_filters.plan_id, phone=selected_filters.phone, expiry=selected_filters.expiry, sort_by=sort_state.sort_by, sort_dir=sort_state.sort_dir) }}">
+                    Previous
+                </a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Page {{ pagination.page }} / {{ pagination.total_pages }}</span>
+            </li>
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link"
+                   href="{{ url_for('admin.dashboard', page=pagination.page+1, per_page=pagination.per_page, status=selected_filters.status, plan_id=selected_filters.plan_id, phone=selected_filters.phone, expiry=selected_filters.expiry, sort_by=sort_state.sort_by, sort_dir=sort_state.sort_dir) }}">
+                    Next
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <a href="{{ url_for('admin.plans') }}" class="btn btn-primary mt-2">Manage Plans</a>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger mt-2">Logout</a>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const triggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    triggerList.map(function (triggerEl) {
+        return new bootstrap.Tooltip(triggerEl);
+    });
+});
+</script>
 {% endblock %}

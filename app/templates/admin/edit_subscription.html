@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Subscription - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5" style="max-width: 720px;">
+    <h2 class="mb-4">Edit Subscription #{{ subscription.id }}</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            {{ form.phone.label(class="form-label") }}
+            {{ form.phone(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            {{ form.location.label(class="form-label") }}
+            {{ form.location(class="form-control") }}
+        </div>
+        <div class="mb-3">
+            {{ form.preferred_delivery_day.label(class="form-label") }}
+            {{ form.preferred_delivery_day(class="form-select") }}
+        </div>
+        <div class="d-flex gap-2">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">Back</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from app.services.mpesa import initiate_stk_push
 from app.models import Payment, PaymentStatus, Subscription, SubscriptionPlan, SubscriptionStatus, db
@@ -129,7 +129,23 @@ def check(checkout_id):
 
 @sub_bp.route('/success')
 def success():
-    return render_template('public/success.html')
+    checkout_id = (request.args.get('checkout_id') or '').strip()
+    payment = None
+    sub = None
+
+    if checkout_id:
+        payment = Payment.query.filter_by(checkout_request_id=checkout_id).first()
+        if payment and payment.subscription_id:
+            sub = Subscription.query.get(payment.subscription_id)
+        if not sub:
+            sub = Subscription.query.filter_by(checkout_request_id=checkout_id).first()
+
+    return render_template(
+        'public/success.html',
+        checkout_id=checkout_id,
+        payment=payment,
+        subscription=sub,
+    )
 
 
 @sub_bp.route('/failed')

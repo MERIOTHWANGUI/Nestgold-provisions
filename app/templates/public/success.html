@@ -1,10 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Payment Success - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5" style="max-width: 780px;">
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <h2 class="text-success mb-3">Payment Confirmed</h2>
+            <p class="text-muted mb-4">
+                Your subscription payment was processed successfully.
+            </p>
+
+            {% if payment or subscription %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="border rounded p-3 h-100">
+                        <h6 class="text-muted mb-3">Payment Details</h6>
+                        <p class="mb-1"><strong>Status:</strong> {{ payment.status if payment else 'Completed' }}</p>
+                        <p class="mb-1"><strong>Amount:</strong> KES {{ '%.2f'|format(payment.amount) if payment else '-' }}</p>
+                        <p class="mb-1"><strong>Method:</strong> {{ payment.payment_method if payment else 'M-Pesa' }}</p>
+                        <p class="mb-1"><strong>Reference:</strong> {{ (payment.mpesa_receipt if payment and payment.mpesa_receipt else checkout_id) or '-' }}</p>
+                        <p class="mb-0"><strong>Checkout ID:</strong> {{ checkout_id or (payment.checkout_request_id if payment else '-') }}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="border rounded p-3 h-100">
+                        <h6 class="text-muted mb-3">Subscription Details</h6>
+                        <p class="mb-1"><strong>Plan:</strong> {{ subscription.plan.name if subscription and subscription.plan else '-' }}</p>
+                        <p class="mb-1"><strong>Name:</strong> {{ subscription.name if subscription else '-' }}</p>
+                        <p class="mb-1"><strong>Access Until:</strong> {{ subscription.current_period_end.strftime('%Y-%m-%d') if subscription and subscription.current_period_end else '-' }}</p>
+                        <p class="mb-0"><strong>Next Delivery:</strong> {{ subscription.next_delivery_date.strftime('%Y-%m-%d') if subscription and subscription.next_delivery_date else '-' }}</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info mb-0">
+                Payment success received. We are finalizing your subscription details.
+            </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">Back to Home</a>
+                <a href="{{ url_for('main.contact') }}" class="btn btn-outline-secondary">Need Help?</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
