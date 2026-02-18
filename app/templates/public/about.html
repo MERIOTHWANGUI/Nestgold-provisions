@@ -12,7 +12,6 @@
 
         <div class="row align-items-center g-5">
 
-            <!-- Image -->
             <div class="col-lg-6 text-center">
                 <img src="{{ url_for('static', filename='images/eggscontainer.png') }}"
                      class="img-fluid rounded-4 shadow-sm"
@@ -20,12 +19,11 @@
                      alt="Egg farm">
             </div>
 
-            <!-- Text -->
             <div class="col-lg-6">
                 <h4 class="fw-bold mb-3">Fresh. Reliable. Local.</h4>
                 <p class="text-muted">
                     NestGold Provisions delivers farm-raised eggs directly
-                    to  your homes. Our focus is simple:
+                    to your homes. Our focus is simple:
                     consistent quality and dependable weekly delivery.
                 </p>
 
@@ -35,19 +33,22 @@
                 </p>
 
                 <ul class="list-unstyled mt-4">
-                    <li class="mb-2">✔ Carefully sourced eggs</li>
-                    <li class="mb-2">✔ Flexible subscription plans</li>
-                    <li class="mb-2">✔ Reliable doorstep delivery</li>
+                    <li class="mb-2">- Carefully sourced eggs</li>
+                    <li class="mb-2">- Flexible subscription plans</li>
+                    <li class="mb-2">- Reliable doorstep delivery</li>
                 </ul>
+
                 <div class="d-flex gap-3 flex-wrap">
-                <a href="{{ url_for('main.index') }}"
-                   class="btn btn-lg fw-bold text-white"
-                   style="background: linear-gradient(90deg, #ff6b00, #ff8c00); border:none;">
-                    Choose a Plan →
-                </a>
-
-
-            </div>
+                    <a href="{{ url_for('main.index') }}"
+                       class="btn btn-lg fw-bold text-white"
+                       style="background: linear-gradient(90deg, #ff6b00, #ff8c00); border:none;">
+                        Choose a Plan ->
+                    </a>
+                    <a href="mailto:nestgoldprovision@gmail.com"
+                       class="btn btn-lg btn-outline-warning fw-bold">
+                        Email Us
+                    </a>
+                </div>
             </div>
 
         </div>
