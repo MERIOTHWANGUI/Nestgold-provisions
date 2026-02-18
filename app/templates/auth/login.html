@@ -21,17 +21,23 @@
                     {% endif %}
                 {% endwith %}
 
-                <form method="POST">
-                    {{ form.csrf_token }}
+                <form method="POST" action="{{ url_for('auth.login') }}" autocomplete="on">
+                    {{ form.hidden_tag() }}
 
                     <div class="mb-3">
                         {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control") }}
+                        {{ form.username(
+                            class="form-control",
+                            autocomplete="username",
+                            autocapitalize="none",
+                            autocorrect="off",
+                            spellcheck="false"
+                        ) }}
                     </div>
 
                     <div class="mb-4">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control") }}
+                        {{ form.password(class="form-control", autocomplete="current-password") }}
                     </div>
 
                     <div class="mb-4 form-check">

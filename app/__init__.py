@@ -1,10 +1,12 @@
 # app/__init__.py
-from flask import Flask
+from flask import Flask, flash, redirect, request, url_for
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
+from flask_wtf.csrf import CSRFError
 from dotenv import load_dotenv
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 
 # Load environment variables
@@ -24,6 +26,7 @@ def create_app():
     # Config
     # ------------------
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret')
+    app.config['WTF_CSRF_TIME_LIMIT'] = 60 * 60 * 4  # 4 hours; helps mobile users resuming tabs
 
     database_url = os.getenv("DATABASE_URL")
     if database_url and database_url.startswith("postgres://"):
@@ -35,6 +38,18 @@ def create_app():
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # Respect reverse-proxy headers on Railway so Flask treats requests as HTTPS.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+
+    # Harden session/remember cookies for HTTPS production environments.
+    is_production = os.getenv('FLASK_ENV') == 'production' or os.getenv('RAILWAY_ENVIRONMENT') is not None
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SECURE'] = is_production
+    app.config['REMEMBER_COOKIE_SECURE'] = is_production
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+
     # ------------------
     # Initialize extensions
     # ------------------
@@ -42,6 +57,12 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        # Avoid raw 400 pages in production; redirect back with a clear message.
+        flash('Session expired or invalid form token. Please try logging in again.', 'warning')
+        return redirect(request.referrer or url_for('auth.login'))
 
     # ------------------
     # User loader

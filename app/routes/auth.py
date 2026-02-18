@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 from app.models import db, User
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -26,7 +27,9 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():  # handles CSRF automatically
-        user = User.query.filter_by(username=form.username.data).first()
+        # Mobile keyboards may auto-capitalize usernames; normalize lookup safely.
+        username = (form.username.data or '').strip()
+        user = User.query.filter(func.lower(User.username) == username.lower()).first()
         if user and check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember_me.data)
             flash('Logged in successfully.', 'success')
