@@ -151,17 +151,16 @@
                         {% endif %}
                     </td>
                     <td class="d-flex flex-wrap gap-1">
-                        {# Actionable column: edit/cancel/retry/delete #}
+                        {# Actionable column: retry payment removed; keep edit/cancel/delete #}
                         <a href="{{ url_for('admin.edit_subscription', sub_id=sub.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
 
                         <form method="POST" action="{{ url_for('admin.cancel_subscription', sub_id=sub.id) }}">
                             {{ action_form.hidden_tag() }}
-                            <button type="submit" class="btn btn-sm btn-outline-warning">Cancel</button>
-                        </form>
-
-                        <form method="POST" action="{{ url_for('admin.retry_payment', sub_id=sub.id) }}">
-                            {{ action_form.hidden_tag() }}
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">Retry Payment</button>
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-warning"
+                                    onclick="return confirm('Are you sure you want to cancel this subscription? This action cannot be undone.');">
+                                Cancel
+                            </button>
                         </form>
 
                         <form method="POST" action="{{ url_for('admin.delete_subscription', sub_id=sub.id) }}">

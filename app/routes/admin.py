@@ -28,7 +28,6 @@ from app.models import (
     SubscriptionStatus,
     db,
 )
-from app.services.mpesa import initiate_stk_push
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -305,37 +304,6 @@ def cancel_subscription(sub_id):
     sub.current_period_end = datetime.utcnow()
     db.session.commit()
     flash(f'Subscription #{sub.id} cancelled.', 'warning')
-    return redirect(url_for('admin.dashboard'))
-
-
-@admin_bp.route('/subscriptions/retry-payment/<int:sub_id>', methods=['POST'])
-def retry_payment(sub_id):
-    form = ActionForm()
-    if not form.validate_on_submit():
-        flash("Bad request (CSRF validation failed).", "danger")
-        return redirect(url_for('admin.dashboard'))
-
-    sub = Subscription.query.get_or_404(sub_id)
-    reference_id = f"NESTGOLD-RETRY-{sub.id}-{int(datetime.utcnow().timestamp())}"
-    phone_mpesa = Subscription.normalize_phone(sub.phone)
-
-    checkout_id, error = initiate_stk_push(
-        phone_mpesa=phone_mpesa,
-        amount_kes=sub.plan.price_per_month,
-        reference_id=reference_id,
-        customer_name=sub.name,
-        description=f"{sub.plan.name} subscription renewal - {sub.name}",
-    )
-
-    if checkout_id:
-        sub.mark_pending(checkout_request_id=checkout_id)
-        db.session.commit()
-        flash(f"Retry STK push sent to {sub.phone}.", "info")
-    else:
-        sub.mark_payment_failed(result_desc=error)
-        db.session.commit()
-        flash(f"Retry payment failed to start: {error}", "danger")
-
     return redirect(url_for('admin.dashboard'))
 
 
