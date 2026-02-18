@@ -17,12 +17,15 @@ with app.app_context():
     # Check if admin user exists
     admin = User.query.filter_by(username=username).first()
 
-    if not admin:
+    if admin:
+        # Update existing admin password
+        admin.set_password(password)
+        db.session.commit()
+        print(f"[✅] Admin user '{username}' already exists. Password updated successfully.")
+    else:
         # Create new admin
         admin = User(username=username, role="admin")
         admin.set_password(password)
         db.session.add(admin)
         db.session.commit()
         print(f"[✅] Admin user '{username}' created successfully.")
-    else:
-        print(f"[ℹ️] Admin user '{username}' already exists.")
