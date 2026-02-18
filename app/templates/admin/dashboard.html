@@ -104,7 +104,6 @@
                     <th>Method</th>
                     <th>Payment Ref / CheckoutID</th>
                     <th>Last Payment</th>
-                    <th>Reminders Sent</th>
                     <th>Delivery Count / Trays Remaining</th>
                     <th>Duplicate</th>
                     <th>Actions</th>
@@ -142,14 +141,6 @@
                         </span>
                     </td>
                     <td>{{ sub.last_payment_date.strftime('%Y-%m-%d %H:%M') if sub.last_payment_date else '-' }}</td>
-                    <td>
-                        {# Badge column for reminders with tooltip details #}
-                        <span class="badge {% if sub.reminders_count > 0 %}bg-info text-dark{% else %}bg-light text-dark border{% endif %}"
-                              data-bs-toggle="tooltip"
-                              title="{{ sub.last_reminder_summary }}">
-                            {{ sub.reminders_count }}
-                        </span>
-                    </td>
                     <td>{{ sub.delivery_count }} / {{ sub.trays_remaining }}</td>
                     <td>
                         {# Warning flag if same phone has multiple active subscriptions #}
@@ -160,7 +151,7 @@
                         {% endif %}
                     </td>
                     <td class="d-flex flex-wrap gap-1">
-                        {# Actionable column: edit/cancel/retry/reminder/delete #}
+                        {# Actionable column: edit/cancel/retry/delete #}
                         <a href="{{ url_for('admin.edit_subscription', sub_id=sub.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
 
                         <form method="POST" action="{{ url_for('admin.cancel_subscription', sub_id=sub.id) }}">
@@ -171,11 +162,6 @@
                         <form method="POST" action="{{ url_for('admin.retry_payment', sub_id=sub.id) }}">
                             {{ action_form.hidden_tag() }}
                             <button type="submit" class="btn btn-sm btn-outline-secondary">Retry Payment</button>
-                        </form>
-
-                        <form method="POST" action="{{ url_for('admin.send_reminder', sub_id=sub.id) }}">
-                            {{ action_form.hidden_tag() }}
-                            <button type="submit" class="btn btn-sm btn-outline-info">Send Reminder</button>
                         </form>
 
                         <form method="POST" action="{{ url_for('admin.delete_subscription', sub_id=sub.id) }}">

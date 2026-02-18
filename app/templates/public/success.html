@@ -11,6 +11,12 @@
                 Your subscription payment was processed successfully.
             </p>
 
+            {% if error_message %}
+            <div class="alert alert-warning">
+                {{ error_message }}
+            </div>
+            {% endif %}
+
             {% if payment or subscription %}
             <div class="row g-3">
                 <div class="col-md-6">
@@ -40,6 +46,13 @@
             {% endif %}
 
             <div class="mt-4 d-flex gap-2">
+                {% if can_download_receipt %}
+                <a href="{{ url_for('subscription.download_receipt', checkout_id=checkout_id) }}" class="btn btn-success">
+                    Download Receipt
+                </a>
+                {% else %}
+                <button class="btn btn-success" disabled>Download Receipt</button>
+                {% endif %}
                 <a href="{{ url_for('main.index') }}" class="btn btn-primary">Back to Home</a>
                 <a href="{{ url_for('main.contact') }}" class="btn btn-outline-secondary">Need Help?</a>
             </div>

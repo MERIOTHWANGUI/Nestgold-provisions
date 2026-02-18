@@ -25,7 +25,6 @@ from app.models import (
     PaymentStatus,
     Subscription,
     SubscriptionPlan,
-    SubscriptionReminder,
     SubscriptionStatus,
     db,
 )
@@ -124,27 +123,6 @@ def _dashboard_base_query(now):
         ).label('delivery_count')
     ).group_by(Delivery.subscription_id).subquery()
 
-    reminder_agg_subq = db.session.query(
-        SubscriptionReminder.subscription_id.label('sub_id'),
-        func.count(SubscriptionReminder.id).label('reminders_count'),
-        func.max(SubscriptionReminder.created_at).label('last_reminder_at')
-    ).group_by(SubscriptionReminder.subscription_id).subquery()
-
-    latest_reminder_subq = db.session.query(
-        SubscriptionReminder.subscription_id.label('sub_id'),
-        SubscriptionReminder.reminder_type.label('reminder_type'),
-        SubscriptionReminder.status.label('reminder_status'),
-        SubscriptionReminder.channel.label('reminder_channel'),
-        SubscriptionReminder.sent_at.label('sent_at'),
-        SubscriptionReminder.message_preview.label('message_preview'),
-    ).join(
-        reminder_agg_subq,
-        and_(
-            SubscriptionReminder.subscription_id == reminder_agg_subq.c.sub_id,
-            SubscriptionReminder.created_at == reminder_agg_subq.c.last_reminder_at
-        )
-    ).subquery()
-
     duplicate_active_phone_subq = db.session.query(
         Subscription.phone_normalized.label('phone_normalized')
     ).filter(
@@ -165,12 +143,6 @@ def _dashboard_base_query(now):
         latest_payment_subq.c.mpesa_receipt.label('mpesa_receipt'),
         latest_payment_subq.c.last_payment_date.label('last_payment_date'),
         latest_payment_subq.c.payment_status.label('last_payment_status'),
-        func.coalesce(reminder_agg_subq.c.reminders_count, 0).label('reminders_count'),
-        latest_reminder_subq.c.reminder_type.label('reminder_type'),
-        latest_reminder_subq.c.reminder_status.label('reminder_status'),
-        latest_reminder_subq.c.reminder_channel.label('reminder_channel'),
-        latest_reminder_subq.c.sent_at.label('reminder_sent_at'),
-        latest_reminder_subq.c.message_preview.label('reminder_message_preview'),
         func.coalesce(delivery_count_subq.c.delivery_count, 0).label('delivery_count'),
         case((duplicate_active_phone_subq.c.phone_normalized.isnot(None), True), else_=False).label('is_duplicate_active_phone')
     ).join(
@@ -181,10 +153,6 @@ def _dashboard_base_query(now):
         latest_payment_subq, latest_payment_subq.c.sub_id == Subscription.id
     ).outerjoin(
         delivery_count_subq, delivery_count_subq.c.sub_id == Subscription.id
-    ).outerjoin(
-        reminder_agg_subq, reminder_agg_subq.c.sub_id == Subscription.id
-    ).outerjoin(
-        latest_reminder_subq, latest_reminder_subq.c.sub_id == Subscription.id
     ).outerjoin(
         duplicate_active_phone_subq, duplicate_active_phone_subq.c.phone_normalized == Subscription.phone_normalized
     )
@@ -252,17 +220,6 @@ def dashboard():
     for row in rows:
         sub = row.Subscription
         days_until_expiry = (sub.current_period_end.date() - now.date()).days if sub.current_period_end else None
-        reminder_parts = []
-        if row.reminder_type:
-            reminder_parts.append(f"type: {row.reminder_type}")
-        if row.reminder_status:
-            reminder_parts.append(f"status: {row.reminder_status}")
-        if row.reminder_channel:
-            reminder_parts.append(f"channel: {row.reminder_channel}")
-        if row.reminder_sent_at:
-            reminder_parts.append(f"sent: {row.reminder_sent_at.strftime('%Y-%m-%d %H:%M')}")
-        reminder_tooltip = " | ".join(reminder_parts) if reminder_parts else "No reminders sent"
-
         payment_reference = row.mpesa_receipt or row.checkout_request_id or '-'
 
         subscriptions.append({
@@ -280,8 +237,6 @@ def dashboard():
             'payment_reference': payment_reference,
             'checkout_request_id': row.checkout_request_id,
             'last_payment_date': row.last_payment_date,
-            'reminders_count': int(row.reminders_count or 0),
-            'last_reminder_summary': reminder_tooltip,
             'delivery_count': int(row.delivery_count or 0),
             'trays_remaining': int(sub.trays_remaining or 0),
             'is_duplicate_active_phone': bool(row.is_duplicate_active_phone),
@@ -381,28 +336,6 @@ def retry_payment(sub_id):
         db.session.commit()
         flash(f"Retry payment failed to start: {error}", "danger")
 
-    return redirect(url_for('admin.dashboard'))
-
-
-@admin_bp.route('/subscriptions/send-reminder/<int:sub_id>', methods=['POST'])
-def send_reminder(sub_id):
-    form = ActionForm()
-    if not form.validate_on_submit():
-        flash("Bad request (CSRF validation failed).", "danger")
-        return redirect(url_for('admin.dashboard'))
-
-    sub = Subscription.query.get_or_404(sub_id)
-    reminder = SubscriptionReminder(
-        subscription_id=sub.id,
-        reminder_type='expiry_warning',
-        channel='sms',
-        status='queued',
-        message_preview=f"Reminder: your {sub.plan.name} plan is due/expiring soon.",
-        created_by=f"user:{current_user.id}",
-    )
-    db.session.add(reminder)
-    db.session.commit()
-    flash(f"Reminder queued for subscription #{sub.id}.", "success")
     return redirect(url_for('admin.dashboard'))
 
 

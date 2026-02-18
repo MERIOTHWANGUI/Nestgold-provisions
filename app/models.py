@@ -106,7 +106,6 @@ class Subscription(db.Model):
     plan = db.relationship('SubscriptionPlan', back_populates='subscriptions')
     user = db.relationship('User', back_populates='subscriptions')
     payments = db.relationship('Payment', back_populates='subscription', lazy=True)
-    reminders = db.relationship('SubscriptionReminder', back_populates='subscription', lazy=True)
 
     @staticmethod
     def normalize_phone(phone):
@@ -208,25 +207,6 @@ class Delivery(db.Model):
 
     def __repr__(self):
         return f'<Delivery {self.id} - {self.status}>'
-
-
-class SubscriptionReminder(db.Model):
-    __tablename__ = 'subscription_reminders'
-
-    id = db.Column(db.Integer, primary_key=True)
-    subscription_id = db.Column(db.Integer, db.ForeignKey('subscriptions.id'), nullable=False, index=True)
-    reminder_type = db.Column(db.String(30), nullable=False)
-    channel = db.Column(db.String(20), nullable=False, default='sms')
-    status = db.Column(db.String(20), nullable=False, default='queued')
-    message_preview = db.Column(db.String(255))
-    sent_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
-    created_by = db.Column(db.String(100), nullable=True)
-
-    subscription = db.relationship('Subscription', back_populates='reminders')
-
-    def __repr__(self):
-        return f'<SubscriptionReminder {self.id} - {self.status}>'
 
 
 class AuditLog(db.Model):

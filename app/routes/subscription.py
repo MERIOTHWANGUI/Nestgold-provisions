@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request, url_for
 
 from app.services.mpesa import initiate_stk_push
 from app.models import Payment, PaymentStatus, Subscription, SubscriptionPlan, SubscriptionStatus, db
@@ -130,6 +130,26 @@ def check(checkout_id):
 @sub_bp.route('/success')
 def success():
     checkout_id = (request.args.get('checkout_id') or '').strip()
+    payment, sub = _resolve_success_records(checkout_id)
+
+    error_message = None
+    if not checkout_id:
+        error_message = "Missing payment reference. Add checkout_id to view full receipt details."
+    elif not payment and not sub:
+        error_message = "No payment/subscription found for this checkout reference."
+
+    return render_template(
+        'public/success.html',
+        checkout_id=checkout_id,
+        payment=payment,
+        subscription=sub,
+        error_message=error_message,
+        can_download_receipt=bool(checkout_id and payment and sub),
+    )
+
+
+def _resolve_success_records(checkout_id):
+    """Resolve payment/subscription deterministically from stored records only."""
     payment = None
     sub = None
 
@@ -140,12 +160,47 @@ def success():
         if not sub:
             sub = Subscription.query.filter_by(checkout_request_id=checkout_id).first()
 
-    return render_template(
-        'public/success.html',
-        checkout_id=checkout_id,
-        payment=payment,
-        subscription=sub,
-    )
+    return payment, sub
+
+
+@sub_bp.route('/success/receipt')
+def download_receipt():
+    checkout_id = (request.args.get('checkout_id') or '').strip()
+    payment, sub = _resolve_success_records(checkout_id)
+
+    if not checkout_id or not payment or not sub:
+        return Response(
+            "Receipt not found. Provide a valid checkout_id tied to a completed payment/subscription.",
+            status=404,
+            mimetype='text/plain'
+        )
+
+    reference = payment.mpesa_receipt or payment.checkout_request_id or checkout_id
+    paid_at = payment.payment_date.strftime('%Y-%m-%d %H:%M:%S') if payment.payment_date else '-'
+    period_start = sub.start_date.strftime('%Y-%m-%d') if sub.start_date else '-'
+    period_end = sub.current_period_end.strftime('%Y-%m-%d') if sub.current_period_end else '-'
+
+    # Plain-text receipt generated only from persisted DB records (no external API calls).
+    receipt_lines = [
+        "NESTGOLD PROVISIONS - PAYMENT RECEIPT",
+        "====================================",
+        f"Checkout ID: {checkout_id}",
+        f"Customer Name: {sub.name}",
+        f"Customer Phone: {sub.phone}",
+        f"Plan: {sub.plan.name if sub.plan else '-'}",
+        f"Billing Period: {period_start} to {period_end}",
+        f"Amount Paid (KES): {payment.amount:.2f}",
+        f"Payment Reference: {reference}",
+        f"Payment Method: {payment.payment_method or 'M-Pesa'}",
+        f"Payment Date/Time: {paid_at}",
+        "",
+        "Thank you for your subscription.",
+    ]
+    body = "\n".join(receipt_lines)
+
+    response = Response(body, mimetype='text/plain; charset=utf-8')
+    response.headers['Content-Disposition'] = f'attachment; filename="receipt_{checkout_id}.txt"'
+    return response
 
 
 @sub_bp.route('/failed')
