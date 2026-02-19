@@ -4,6 +4,7 @@ import secrets
 from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request, url_for
 
 from app.services.mpesa import get_manual_payment_instructions
+from app.services.sms import send_admin_payment_request_sms
 from app.models import (
     ManualPaymentStatus,
     Payment,
@@ -115,6 +116,7 @@ def new(plan_id):
         db.session.add(payment)
         sub.checkout_request_id = reference_id
         db.session.commit()
+        send_admin_payment_request_sms(sub, payment)
 
         payment_config = PaymentConfig.query.order_by(PaymentConfig.id.desc()).first()
         instructions = get_manual_payment_instructions(
