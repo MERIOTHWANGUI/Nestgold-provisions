@@ -28,6 +28,11 @@ class PaymentStatus(str, Enum):
     CANCELLED = "Cancelled"
 
 
+class ManualPaymentStatus(str, Enum):
+    PENDING = "Pending"
+    CONFIRMED = "Confirmed"
+
+
 class DeliveryStatus(str, Enum):
     SCHEDULED = "Scheduled"
     DELIVERED = "Delivered"
@@ -102,6 +107,7 @@ class Subscription(db.Model):
     location = db.Column(db.String(200), nullable=False)
     trays_remaining = db.Column(db.Integer, nullable=False, default=0)
     trays_allocated_total = db.Column(db.Integer, nullable=False, default=0)
+    delivery_status = db.Column(db.String(30), nullable=False, default="Pending")
 
     plan = db.relationship('SubscriptionPlan', back_populates='subscriptions')
     user = db.relationship('User', back_populates='subscriptions')
@@ -189,6 +195,13 @@ class Payment(db.Model):
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
     checkout_request_id = db.Column(db.String(100), unique=True, index=True)
     payment_method = db.Column(db.String(30), nullable=False, default='M-Pesa')
+    manual_payment_status = db.Column(db.String(20), nullable=False, default=ManualPaymentStatus.PENDING.value)
+    tracking_code = db.Column(db.String(40), unique=True, index=True)
+    reference_id = db.Column(db.String(80), unique=True, index=True)
+    customer_name = db.Column(db.String(100))
+    customer_phone = db.Column(db.String(20))
+    description = db.Column(db.Text)
+    instruction_channel = db.Column(db.String(20))
 
     subscription = db.relationship('Subscription', back_populates='payments')
 

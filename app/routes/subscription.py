@@ -1,9 +1,18 @@
 from datetime import datetime, timedelta
+import secrets
 
 from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request, url_for
 
-from app.services.mpesa import initiate_stk_push
-from app.models import Payment, PaymentStatus, Subscription, SubscriptionPlan, SubscriptionStatus, db
+from app.services.mpesa import get_manual_payment_instructions
+from app.models import (
+    ManualPaymentStatus,
+    Payment,
+    PaymentStatus,
+    Subscription,
+    SubscriptionPlan,
+    SubscriptionStatus,
+    db,
+)
 from .forms import SubscriptionForm
 
 sub_bp = Blueprint('subscription', __name__, url_prefix='/subscribe')
@@ -28,6 +37,10 @@ def _next_delivery_datetime(preferred_day, now=None):
     if days_ahead == 0:
         days_ahead = 7
     return now + timedelta(days=days_ahead)
+
+
+def _new_tracking_code():
+    return secrets.token_urlsafe(8).replace("-", "").replace("_", "").upper()
 
 
 @sub_bp.route('/<int:plan_id>', methods=['GET', 'POST'])
@@ -59,6 +72,7 @@ def new(plan_id):
             sub.preferred_delivery_day = delivery_day
             sub.next_delivery_date = _next_delivery_datetime(delivery_day, now=now)
             sub.mark_pending()
+            sub.delivery_status = "Pending"
         else:
             sub = Subscription(
                 plan_id=plan.id,
@@ -71,32 +85,48 @@ def new(plan_id):
                 start_date=now,
                 current_period_end=now,
                 next_delivery_date=_next_delivery_datetime(delivery_day, now=now),
+                delivery_status="Pending",
             )
             db.session.add(sub)
 
         db.session.commit()
 
         reference_id = f"NESTGOLD-{sub.id}-{int(datetime.utcnow().timestamp())}"
+        tracking_code = _new_tracking_code()
+        while Payment.query.filter_by(tracking_code=tracking_code).first():
+            tracking_code = _new_tracking_code()
 
-        checkout_id, error = initiate_stk_push(
-            phone_mpesa=phone_mpesa,
-            amount_kes=plan.price_per_month,
+        payment = Payment(
+            subscription_id=sub.id,
+            amount=plan.price_per_month,
+            checkout_request_id=reference_id,
             reference_id=reference_id,
             customer_name=name,
-            description=f"{plan.name} subscription - {name}"
+            customer_phone=phone_mpesa,
+            description=f"{plan.name} subscription - {name}",
+            status=PaymentStatus.PENDING.value,
+            manual_payment_status=ManualPaymentStatus.PENDING.value,
+            payment_method="Manual",
+            tracking_code=tracking_code,
+            payment_date=now,
         )
+        db.session.add(payment)
+        sub.checkout_request_id = reference_id
+        db.session.commit()
 
-        if checkout_id:
-            sub.mark_pending(checkout_request_id=checkout_id)
-            db.session.commit()
-            flash(f'Payment prompt sent to {phone}. Complete on your phone.', 'info')
-            return redirect(url_for('subscription.pending', checkout_id=checkout_id))
-        else:
-            # Keep a single source row and mark the attempt outcome instead of deleting records.
-            sub.mark_payment_failed(result_desc=error)
-            flash(f'Payment start failed: {error}', 'danger')
-            db.session.commit()
-            return redirect(url_for('subscription.new', plan_id=plan.id))
+        instructions = get_manual_payment_instructions(
+            reference_id=reference_id,
+            amount_kes=plan.price_per_month,
+            customer_name=name,
+        )
+        flash("Payment request submitted. Follow the manual instructions below.", "info")
+        return render_template(
+            "public/payment_instructions.html",
+            payment=payment,
+            subscription=sub,
+            instructions=instructions,
+            tracking_url=url_for("payments.track_payment", tracking_code=tracking_code),
+        )
 
     return render_template('public/subscribe.html', plan=plan, form=form)
 

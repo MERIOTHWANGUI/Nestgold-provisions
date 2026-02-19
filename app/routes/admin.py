@@ -21,6 +21,7 @@ from wtforms.validators import DataRequired, Length, NumberRange
 from app.models import (
     Delivery,
     DeliveryStatus,
+    ManualPaymentStatus,
     Payment,
     PaymentStatus,
     Subscription,
@@ -48,6 +49,16 @@ class DeleteForm(FlaskForm):
 
 class ActionForm(FlaskForm):
     submit = SubmitField('Submit')
+
+
+class ConfirmPaymentForm(FlaskForm):
+    channel = SelectField('Instruction Channel', choices=[
+        ('', 'Not Set'),
+        ('whatsapp', 'WhatsApp'),
+        ('sms', 'SMS'),
+        ('email', 'Email'),
+    ])
+    submit = SubmitField('Confirm')
 
 
 class SubscriptionEditForm(FlaskForm):
@@ -405,3 +416,80 @@ def delete_subscription(sub_id):
         )
 
     return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/payments')
+def payments():
+    payments_list = Payment.query.order_by(Payment.payment_date.desc(), Payment.id.desc()).all()
+    confirm_form = ConfirmPaymentForm()
+    action_form = ActionForm()
+    return render_template(
+        'admin/payments.html',
+        payments=payments_list,
+        confirm_form=confirm_form,
+        action_form=action_form,
+    )
+
+
+@admin_bp.route('/confirm/<int:payment_id>', methods=['POST'])
+def confirm_payment(payment_id):
+    form = ConfirmPaymentForm()
+    if not form.validate_on_submit():
+        flash("Bad request (CSRF validation failed).", "danger")
+        return redirect(url_for('admin.payments'))
+
+    payment = Payment.query.get_or_404(payment_id)
+    now = datetime.utcnow()
+    first_success = payment.status != PaymentStatus.COMPLETED.value
+
+    payment.status = PaymentStatus.COMPLETED.value
+    payment.manual_payment_status = ManualPaymentStatus.CONFIRMED.value
+    payment.payment_method = 'Manual'
+    payment.payment_date = now
+    payment.instruction_channel = form.channel.data or None
+
+    sub = payment.subscription
+    if sub and first_success:
+        sub.apply_successful_payment(now=now)
+        monthly_trays = sub.plan.trays_per_week * 4
+        sub.trays_allocated_total = (sub.trays_allocated_total or 0) + monthly_trays
+        sub.trays_remaining = (sub.trays_remaining or 0) + monthly_trays
+        sub.delivery_status = "Pending"
+
+    db.session.commit()
+    flash(f'Payment #{payment.id} confirmed successfully.', 'success')
+    return redirect(url_for('admin.payments'))
+
+
+@admin_bp.route('/deliver/<int:subscription_id>', methods=['POST'])
+def mark_delivery_done(subscription_id):
+    form = ActionForm()
+    if not form.validate_on_submit():
+        flash("Bad request (CSRF validation failed).", "danger")
+        return redirect(url_for('admin.payments'))
+
+    sub = Subscription.query.get_or_404(subscription_id)
+    if sub.trays_remaining <= 0:
+        sub.delivery_status = "Completed"
+        db.session.commit()
+        flash(f'Subscription #{sub.id} has no trays remaining.', 'warning')
+        return redirect(url_for('admin.payments'))
+
+    delivered_before = sub.trays_allocated_total - sub.trays_remaining
+    sub.trays_remaining -= 1
+    delivery = Delivery(
+        subscription_id=sub.id,
+        scheduled_date=datetime.utcnow(),
+        status=DeliveryStatus.DELIVERED.value,
+        notes=f"Tray delivery marked done manually (tray #{delivered_before + 1}).",
+    )
+    db.session.add(delivery)
+
+    if sub.trays_remaining == 0:
+        sub.delivery_status = "Completed"
+    else:
+        sub.delivery_status = "In Progress"
+
+    db.session.commit()
+    flash(f'Delivery recorded for subscription #{sub.id}.', 'success')
+    return redirect(url_for('admin.payments'))

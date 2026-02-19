@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Instructions - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="mb-3">Manual Payment Instructions</h1>
+            <div class="alert alert-info">
+                Use your reference and complete payment via paybill or bank transfer.
+            </div>
+            <div class="card p-4 mb-3">
+                <p><strong>Name:</strong> {{ payment.customer_name or '-' }}</p>
+                <p><strong>Phone:</strong> {{ payment.customer_phone or '-' }}</p>
+                <p><strong>Amount:</strong> KES {{ '%.2f'|format(payment.amount) }}</p>
+                <p><strong>Reference ID:</strong> {{ payment.reference_id or payment.checkout_request_id }}</p>
+                <p><strong>Tracking Code:</strong> {{ payment.tracking_code }}</p>
+                <hr>
+                <pre class="mb-0" style="white-space: pre-wrap;">{{ instructions }}</pre>
+            </div>
+            <a class="btn btn-success" href="{{ tracking_url }}">Track This Payment</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
