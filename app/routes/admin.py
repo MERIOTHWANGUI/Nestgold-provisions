@@ -648,16 +648,28 @@ def delete_payment(payment_id):
         return redirect(url_for('admin.payments'))
 
     payment = Payment.query.get_or_404(payment_id)
-    if payment.payment_status == ManualPaymentStatus.CONFIRMED.value:
-        flash('Confirmed payments cannot be deleted. Cancel the subscription instead if needed.', 'warning')
-        return redirect(url_for('admin.payments'))
-
     sub = payment.subscription
+
+    if sub and payment.payment_status == ManualPaymentStatus.CONFIRMED.value and sub.plan:
+        monthly_trays = max(0, int(sub.plan.trays_per_week or 0) * 4)
+        sub.trays_allocated_total = max(0, int(sub.trays_allocated_total or 0) - monthly_trays)
+        sub.trays_remaining = max(0, int(sub.trays_remaining or 0) - monthly_trays)
+
     db.session.delete(payment)
     db.session.flush()
 
     if sub:
         remaining = Payment.query.filter_by(subscription_id=sub.id).count()
+        confirmed_left = Payment.query.filter_by(
+            subscription_id=sub.id,
+            payment_status=ManualPaymentStatus.CONFIRMED.value
+        ).count()
+
+        if confirmed_left == 0:
+            sub.status = SubscriptionStatus.PENDING.value
+            sub.current_period_end = datetime.utcnow()
+            sub.delivery_status = "Pending"
+
         if remaining == 0 and sub.status == SubscriptionStatus.PENDING.value:
             db.session.delete(sub)
 

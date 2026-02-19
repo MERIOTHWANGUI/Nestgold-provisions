@@ -146,7 +146,7 @@
                         <form method="POST" action="{{ url_for('admin.delete_payment', payment_id=p.id) }}" class="mt-2">
                             {{ delete_form.hidden_tag() }}
                             <button class="btn btn-sm btn-outline-danger w-100" type="submit"
-                                    onclick="return confirm('Delete payment #{{ p.id }}? Pending-only cleanup action.');">
+                                    onclick="return confirm('Delete payment #{{ p.id }}? This is for cleanup/testing and may adjust subscription tray counts.');">
                                 Delete
                             </button>
                         </form>
