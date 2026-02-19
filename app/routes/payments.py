@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request, url_for
 
 from app import csrf
-from app.models import Delivery, DeliveryStatus, ManualPaymentStatus, Payment
+from app.models import Delivery, DeliveryStatus, ManualPaymentStatus, Payment, PaymentConfig
 from app.routes.forms import TrackingLookupForm
 
 payments_bp = Blueprint("payments", __name__)
@@ -103,29 +103,61 @@ def track_receipt_download(tracking_code):
     payment = _resolve_payment_by_token(tracking_code)
     if not payment:
         return Response("Receipt record not found.", status=404, mimetype="text/plain")
-    if payment.payment_status != ManualPaymentStatus.CONFIRMED.value:
-        return Response("Receipt is available only after payment confirmation.", status=400, mimetype="text/plain")
 
     sub = payment.subscription
     ref = payment.admin_transaction_reference or payment.reference_id or payment.checkout_request_id or "-"
     paid_at = payment.payment_date.strftime("%Y-%m-%d %H:%M:%S") if payment.payment_date else "-"
-    lines = [
-        "NESTGOLD PROVISIONS - RECEIPT",
-        "----------------------------------------",
-        f"Receipt Date: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"Payment ID: {payment.id}",
-        f"Reference: {ref}",
-        f"Customer: {payment.customer_name or (sub.name if sub else '-')}",
-        f"Phone: {payment.customer_phone or (sub.phone if sub else '-')}",
-        f"Amount (KES): {payment.amount:.2f}",
-        f"Payment Status: {payment.payment_status}",
-        f"Confirmed At: {paid_at}",
-        f"Plan: {(sub.plan.name if sub and sub.plan else '-')}",
-        f"Trays Remaining: {(sub.trays_remaining if sub else 0)}",
-    ]
+    payment_config = PaymentConfig.query.order_by(PaymentConfig.id.desc()).first()
+    paybill = payment_config.mpesa_paybill if payment_config else "174379"
+    bank_name = payment_config.bank_name if payment_config else "NestGold Bank"
+    bank_acc_name = payment_config.bank_account_name if payment_config else "NestGold Provisions"
+    bank_acc_no = payment_config.bank_account_number if payment_config else "1234567890"
+    tracking_token = payment.tracking_code or payment.reference_id or payment.checkout_request_id or "-"
+
+    if payment.payment_status == ManualPaymentStatus.CONFIRMED.value:
+        lines = [
+            "NESTGOLD PROVISIONS - RECEIPT",
+            "----------------------------------------",
+            f"Receipt Date: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Payment ID: {payment.id}",
+            f"Reference: {ref}",
+            f"Tracking ID: {tracking_token}",
+            f"Customer: {payment.customer_name or (sub.name if sub else '-')}",
+            f"Phone: {payment.customer_phone or (sub.phone if sub else '-')}",
+            f"Amount (KES): {payment.amount:.2f}",
+            f"Payment Status: {payment.payment_status}",
+            f"Confirmed At: {paid_at}",
+            f"Plan: {(sub.plan.name if sub and sub.plan else '-')}",
+            f"Trays Remaining: {(sub.trays_remaining if sub else 0)}",
+        ]
+        filename = f"receipt_{payment.id}.pdf"
+    else:
+        lines = [
+            "NESTGOLD PROVISIONS - PAYMENT SLIP",
+            "----------------------------------------",
+            f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Payment ID: {payment.id}",
+            f"Reference: {ref}",
+            f"Tracking ID: {tracking_token}",
+            f"Customer: {payment.customer_name or (sub.name if sub else '-')}",
+            f"Phone: {payment.customer_phone or (sub.phone if sub else '-')}",
+            f"Amount (KES): {payment.amount:.2f}",
+            f"Payment Status: {payment.payment_status}",
+            "",
+            "How to pay:",
+            f"M-Pesa Paybill: {paybill}",
+            f"Account Number: {ref}",
+            f"Bank: {bank_name}",
+            f"Bank Account Name: {bank_acc_name}",
+            f"Bank Account Number: {bank_acc_no}",
+            "",
+            "Keep this slip to recover your tracking details any time.",
+        ]
+        filename = f"payment_slip_{payment.id}.pdf"
+
     body = _simple_pdf(lines)
     response = Response(body, mimetype="application/pdf")
-    response.headers["Content-Disposition"] = f'attachment; filename="receipt_{payment.id}.pdf"'
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
 

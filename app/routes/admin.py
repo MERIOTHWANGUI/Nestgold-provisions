@@ -5,7 +5,7 @@ from flask import Blueprint, Response, flash, redirect, render_template, request
 from flask_login import current_user, login_required
 from flask_wtf import FlaskForm
 from markupsafe import escape
-from sqlalchemy import and_, case, func
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.exc import IntegrityError
 from wtforms import (
     BooleanField,
@@ -457,7 +457,31 @@ def delete_subscription(sub_id):
 
 @admin_bp.route('/payments')
 def payments():
-    payments_list = Payment.query.order_by(Payment.payment_date.desc(), Payment.id.desc()).all()
+    payment_status_filter = (request.args.get('payment_status') or '').strip()
+    has_subscription_filter = (request.args.get('has_subscription') or '').strip().lower()
+    query_text = (request.args.get('q') or '').strip()
+
+    payments_query = Payment.query
+    if payment_status_filter in {ManualPaymentStatus.PENDING.value, ManualPaymentStatus.CONFIRMED.value}:
+        payments_query = payments_query.filter(Payment.payment_status == payment_status_filter)
+
+    if has_subscription_filter == 'yes':
+        payments_query = payments_query.filter(Payment.subscription_id.isnot(None))
+    elif has_subscription_filter == 'no':
+        payments_query = payments_query.filter(Payment.subscription_id.is_(None))
+
+    if query_text:
+        like = f"%{query_text}%"
+        payments_query = payments_query.filter(or_(
+            Payment.customer_name.ilike(like),
+            Payment.customer_phone.ilike(like),
+            Payment.reference_id.ilike(like),
+            Payment.tracking_code.ilike(like),
+            Payment.checkout_request_id.ilike(like),
+            Payment.admin_transaction_reference.ilike(like),
+        ))
+
+    payments_list = payments_query.order_by(Payment.payment_date.desc(), Payment.id.desc()).all()
     confirm_form = ConfirmManualPaymentForm()
     delivery_form = DeliveryUpdateForm()
     config = PaymentConfig.query.order_by(PaymentConfig.id.desc()).first()
@@ -466,6 +490,7 @@ def payments():
         db.session.add(config)
         db.session.commit()
     config_form = PaymentConfigForm(obj=config)
+    delete_form = DeleteForm()
 
     total_pending = Payment.query.filter_by(payment_status=ManualPaymentStatus.PENDING.value).count()
     total_confirmed = Payment.query.filter_by(payment_status=ManualPaymentStatus.CONFIRMED.value).count()
@@ -486,6 +511,12 @@ def payments():
             'confirmed': total_confirmed,
             'trays_delivered': trays_delivered,
             'trays_remaining': trays_remaining_total,
+        },
+        delete_form=delete_form,
+        selected_filters={
+            'payment_status': payment_status_filter,
+            'has_subscription': has_subscription_filter,
+            'q': query_text,
         },
     )
 
@@ -607,3 +638,29 @@ def download_payment_receipt(payment_id):
     response = Response(_simple_pdf(lines), mimetype="application/pdf")
     response.headers["Content-Disposition"] = f'attachment; filename="admin_receipt_{payment.id}.pdf"'
     return response
+
+
+@admin_bp.route('/payments/delete/<int:payment_id>', methods=['POST'])
+def delete_payment(payment_id):
+    form = DeleteForm()
+    if not form.validate_on_submit():
+        flash("Bad request (CSRF validation failed).", "danger")
+        return redirect(url_for('admin.payments'))
+
+    payment = Payment.query.get_or_404(payment_id)
+    if payment.payment_status == ManualPaymentStatus.CONFIRMED.value:
+        flash('Confirmed payments cannot be deleted. Cancel the subscription instead if needed.', 'warning')
+        return redirect(url_for('admin.payments'))
+
+    sub = payment.subscription
+    db.session.delete(payment)
+    db.session.flush()
+
+    if sub:
+        remaining = Payment.query.filter_by(subscription_id=sub.id).count()
+        if remaining == 0 and sub.status == SubscriptionStatus.PENDING.value:
+            db.session.delete(sub)
+
+    db.session.commit()
+    flash(f'Payment #{payment_id} deleted successfully.', 'success')
+    return redirect(url_for('admin.payments'))

@@ -130,6 +130,7 @@ def new(plan_id):
             subscription=sub,
             instructions=instructions,
             tracking_url=url_for("payments.track_payment", tracking_code=tracking_code),
+            slip_download_url=url_for("payments.track_receipt_download", tracking_code=tracking_code),
         )
 
     return render_template('public/subscribe.html', plan=plan, form=form)

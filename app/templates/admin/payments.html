@@ -8,6 +8,7 @@
         <h1 class="mb-0">Manual Payments & Delivery</h1>
         <a class="btn btn-outline-primary" href="{{ url_for('admin.dashboard') }}">Back to Dashboard</a>
     </div>
+    <p class="text-muted">Use this page to confirm payments, update tray deliveries, manage payment details, and clean up pending test payments.</p>
 
     <div class="row mb-4 g-3">
         <div class="col-md-3"><div class="card p-3"><strong>Pending Payments</strong><div class="fs-4">{{ summary.pending }}</div></div></div>
@@ -29,6 +30,38 @@
         </form>
     </div>
 
+    <div class="card p-4 mb-4">
+        <h5 class="mb-3">Filter Payments</h5>
+        <form method="GET" action="{{ url_for('admin.payments') }}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Payment Status</label>
+                <select class="form-select" name="payment_status">
+                    <option value="">All</option>
+                    <option value="Pending" {% if selected_filters.payment_status == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Confirmed" {% if selected_filters.payment_status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Has Subscription</label>
+                <select class="form-select" name="has_subscription">
+                    <option value="" {% if not selected_filters.has_subscription %}selected{% endif %}>All</option>
+                    <option value="yes" {% if selected_filters.has_subscription == 'yes' %}selected{% endif %}>Yes</option>
+                    <option value="no" {% if selected_filters.has_subscription == 'no' %}selected{% endif %}>No</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input class="form-control" type="text" name="q"
+                       value="{{ selected_filters.q or '' }}"
+                       placeholder="Name, phone, ref, tracking, txn ref">
+            </div>
+            <div class="col-md-2 d-grid gap-2">
+                <button class="btn btn-primary" type="submit">Apply</button>
+                <a class="btn btn-outline-secondary" href="{{ url_for('admin.payments') }}">Reset</a>
+            </div>
+        </form>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-striped table-hover align-middle">
             <thead class="table-light">
@@ -42,7 +75,7 @@
                     <th>Delivery</th>
                     <th>Confirm Payment</th>
                     <th>Tray Update</th>
-                    <th>Receipt</th>
+                    <th>Receipt / Delete</th>
                 </tr>
             </thead>
             <tbody>
@@ -103,12 +136,20 @@
                         <span class="text-muted">No subscription</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td style="min-width: 180px;">
                         {% if p.payment_status == 'Confirmed' %}
                         <a class="btn btn-sm btn-outline-dark" href="{{ url_for('admin.download_payment_receipt', payment_id=p.id) }}">PDF</a>
                         {% else %}
-                        <span class="text-muted">Pending</span>
+                        <span class="text-muted">Pending</span><br>
+                        <small class="text-muted">Can be deleted</small>
                         {% endif %}
+                        <form method="POST" action="{{ url_for('admin.delete_payment', payment_id=p.id) }}" class="mt-2">
+                            {{ delete_form.hidden_tag() }}
+                            <button class="btn btn-sm btn-outline-danger w-100" type="submit"
+                                    onclick="return confirm('Delete payment #{{ p.id }}? Pending-only cleanup action.');">
+                                Delete
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% else %}
