@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Track Subscription - NestGold{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <h1 class="mb-4">Track Your Subscription</h1>
+            <div class="card p-4">
+                <form method="POST" action="{{ url_for('payments.track_lookup') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.tracking_id.label(class_='form-label fw-bold') }}
+                        {{ form.tracking_id(class_='form-control', placeholder='Enter tracking code or reference ID') }}
+                    </div>
+                    {{ form.submit(class_='btn btn-warning w-100') }}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

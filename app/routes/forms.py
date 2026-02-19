@@ -1,5 +1,5 @@
 # app/routes/forms.py
-from wtforms import PasswordField, BooleanField, DecimalField, TextAreaField
+from wtforms import PasswordField, BooleanField, DecimalField, TextAreaField, DateField
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Length, Regexp, NumberRange
@@ -24,10 +24,38 @@ class SubscriptionForm(FlaskForm):
     submit = SubmitField("Proceed to Payment")
 
 
-class PaymentRequestForm(FlaskForm):
-    name = StringField("Full Name", validators=[DataRequired(), Length(max=100)])
-    phone = StringField("Phone Number", validators=[DataRequired(), Regexp(r"0[17][0-9]{8}")])
-    amount = DecimalField("Amount (KES)", validators=[DataRequired(), NumberRange(min=1)], places=2)
-    reference_id = StringField("Reference ID", validators=[DataRequired(), Length(max=80)])
-    description = TextAreaField("Description", validators=[Length(max=500)])
-    submit = SubmitField("Submit Payment Request")
+class TrackingLookupForm(FlaskForm):
+    tracking_id = StringField("Tracking ID / Reference", validators=[DataRequired(), Length(max=100)])
+    submit = SubmitField("Track")
+
+
+class ConfirmManualPaymentForm(FlaskForm):
+    channel = SelectField('Instruction Channel', choices=[
+        ('', 'Not Set'),
+        ('whatsapp', 'WhatsApp'),
+        ('sms', 'SMS'),
+        ('email', 'Email'),
+    ])
+    transaction_reference = StringField("Transaction Reference", validators=[Length(max=100)])
+    admin_notes = TextAreaField("Admin Notes", validators=[Length(max=500)])
+    submit = SubmitField('Confirm')
+
+
+class DeliveryUpdateForm(FlaskForm):
+    status = SelectField(
+        "Delivery Update",
+        choices=[("Delivered", "Delivered"), ("Skipped", "Skipped"), ("Cancelled", "Cancelled")],
+        validators=[DataRequired()],
+    )
+    delivery_date = DateField("Delivery Date", format="%Y-%m-%d", validators=[DataRequired()])
+    notes = TextAreaField("Delivery Notes", validators=[Length(max=500)])
+    submit = SubmitField("Save Delivery")
+
+
+class PaymentConfigForm(FlaskForm):
+    mpesa_paybill = StringField("M-Pesa Paybill", validators=[DataRequired(), Length(max=40)])
+    bank_name = StringField("Bank Name", validators=[DataRequired(), Length(max=100)])
+    bank_account_name = StringField("Bank Account Name", validators=[DataRequired(), Length(max=100)])
+    bank_account_number = StringField("Bank Account Number", validators=[DataRequired(), Length(max=80)])
+    instructions_footer = TextAreaField("Instruction Footer", validators=[Length(max=500)])
+    submit = SubmitField("Save Payment Details")

@@ -14,20 +14,27 @@ MANUAL_BANK_ACCOUNT = os.getenv("MANUAL_BANK_ACCOUNT", "1234567890")
 MANUAL_BANK_ACCOUNT_NAME = os.getenv("MANUAL_BANK_ACCOUNT_NAME", "NestGold Provisions")
 
 
-def get_manual_payment_instructions(reference_id, amount_kes, customer_name=None):
+def get_manual_payment_instructions(reference_id, amount_kes, customer_name=None, payment_config=None):
     name_part = f" for {customer_name}" if customer_name else ""
+    paybill = getattr(payment_config, "mpesa_paybill", None) or MPESA_PAYBILL
+    bank_name = getattr(payment_config, "bank_name", None) or MANUAL_BANK_NAME
+    bank_account_name = getattr(payment_config, "bank_account_name", None) or MANUAL_BANK_ACCOUNT_NAME
+    bank_account_number = getattr(payment_config, "bank_account_number", None) or MANUAL_BANK_ACCOUNT
+    footer = getattr(payment_config, "instructions_footer", None) or (
+        "After payment, keep your receipt and share it with admin via WhatsApp/SMS/email."
+    )
     return (
         f"Please complete your payment{name_part}.\n"
         f"Amount: KES {float(amount_kes):.2f}\n"
         f"Reference ID: {reference_id}\n\n"
         "Option 1 - M-Pesa Paybill\n"
-        f"Business Number: {MPESA_PAYBILL}\n"
+        f"Business Number: {paybill}\n"
         f"Account Number: {reference_id}\n\n"
         "Option 2 - Bank Transfer\n"
-        f"Bank: {MANUAL_BANK_NAME}\n"
-        f"Account Name: {MANUAL_BANK_ACCOUNT_NAME}\n"
-        f"Account Number: {MANUAL_BANK_ACCOUNT}\n\n"
-        "After payment, keep your receipt and share it with admin via WhatsApp/SMS/email."
+        f"Bank: {bank_name}\n"
+        f"Account Name: {bank_account_name}\n"
+        f"Account Number: {bank_account_number}\n\n"
+        f"{footer}"
     )
 
 

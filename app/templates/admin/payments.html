@@ -5,8 +5,28 @@
 {% block content %}
 <div class="container my-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Manual Payment Requests</h1>
+        <h1 class="mb-0">Manual Payments & Delivery</h1>
         <a class="btn btn-outline-primary" href="{{ url_for('admin.dashboard') }}">Back to Dashboard</a>
+    </div>
+
+    <div class="row mb-4 g-3">
+        <div class="col-md-3"><div class="card p-3"><strong>Pending Payments</strong><div class="fs-4">{{ summary.pending }}</div></div></div>
+        <div class="col-md-3"><div class="card p-3"><strong>Confirmed Payments</strong><div class="fs-4">{{ summary.confirmed }}</div></div></div>
+        <div class="col-md-3"><div class="card p-3"><strong>Trays Delivered</strong><div class="fs-4">{{ summary.trays_delivered }}</div></div></div>
+        <div class="col-md-3"><div class="card p-3"><strong>Trays Remaining</strong><div class="fs-4">{{ summary.trays_remaining }}</div></div></div>
+    </div>
+
+    <div class="card p-4 mb-4">
+        <h5 class="mb-3">Payment Details (Admin Managed)</h5>
+        <form method="POST" action="{{ url_for('admin.save_payment_config') }}" class="row g-3">
+            {{ config_form.hidden_tag() }}
+            <div class="col-md-3">{{ config_form.mpesa_paybill.label(class_='form-label') }}{{ config_form.mpesa_paybill(class_='form-control') }}</div>
+            <div class="col-md-3">{{ config_form.bank_name.label(class_='form-label') }}{{ config_form.bank_name(class_='form-control') }}</div>
+            <div class="col-md-3">{{ config_form.bank_account_name.label(class_='form-label') }}{{ config_form.bank_account_name(class_='form-control') }}</div>
+            <div class="col-md-3">{{ config_form.bank_account_number.label(class_='form-label') }}{{ config_form.bank_account_number(class_='form-control') }}</div>
+            <div class="col-12">{{ config_form.instructions_footer.label(class_='form-label') }}{{ config_form.instructions_footer(class_='form-control', rows='2') }}</div>
+            <div class="col-12">{{ config_form.submit(class_='btn btn-primary') }}</div>
+        </form>
     </div>
 
     <div class="table-responsive">
@@ -15,76 +35,85 @@
                 <tr>
                     <th>ID</th>
                     <th>Customer</th>
-                    <th>Phone</th>
                     <th>Amount</th>
                     <th>Reference</th>
                     <th>Tracking</th>
-                    <th>Manual Status</th>
+                    <th>Status</th>
                     <th>Delivery</th>
-                    <th>Send Via</th>
-                    <th>Actions</th>
+                    <th>Confirm Payment</th>
+                    <th>Tray Update</th>
+                    <th>Receipt</th>
                 </tr>
             </thead>
             <tbody>
                 {% for p in payments %}
                 <tr>
                     <td>{{ p.id }}</td>
-                    <td>{{ p.customer_name or '-' }}</td>
-                    <td>{{ p.customer_phone or '-' }}</td>
+                    <td>
+                        <div>{{ p.customer_name or '-' }}</div>
+                        <small class="text-muted">{{ p.customer_phone or '-' }}</small>
+                    </td>
                     <td>KES {{ '%.2f'|format(p.amount) }}</td>
-                    <td>{{ p.reference_id or p.checkout_request_id or '-' }}</td>
+                    <td>
+                        {{ p.reference_id or p.checkout_request_id or '-' }}
+                        {% if p.admin_transaction_reference %}
+                        <div><small class="text-muted">Txn: {{ p.admin_transaction_reference }}</small></div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% set track_token = p.tracking_code or p.reference_id or p.checkout_request_id %}
                         {% if track_token %}
-                        <a href="{{ url_for('payments.track_payment', tracking_code=track_token) }}">
-                            {{ p.tracking_code or p.reference_id or p.checkout_request_id }}
-                        </a>
+                        <a href="{{ url_for('payments.track_payment', tracking_code=track_token) }}">{{ track_token }}</a>
                         {% else %}
                         <span class="text-muted">-</span>
                         {% endif %}
                     </td>
                     <td>
-                        <span class="badge {% if p.manual_payment_status == 'Confirmed' %}bg-success{% else %}bg-warning text-dark{% endif %}">
-                            {{ p.manual_payment_status }}
+                        <span class="badge {% if p.payment_status == 'Confirmed' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                            {{ p.payment_status }}
                         </span>
                     </td>
                     <td>
                         {% if p.subscription %}
-                            {{ p.subscription.delivery_status }} ({{ p.subscription.trays_remaining }} left)
+                        {{ p.subscription.delivery_status }}<br>
+                        <small class="text-muted">{{ p.subscription.trays_remaining }} trays left</small>
                         {% else %}
-                            -
+                        -
                         {% endif %}
                     </td>
                     <td>
-                        {% if p.customer_phone %}
-                        <a class="btn btn-sm btn-outline-success" target="_blank"
-                           href="https://wa.me/{{ p.customer_phone }}?text=Please%20pay%20NestGold%20reference%20{{ p.reference_id or p.checkout_request_id }}">WA</a>
-                        <a class="btn btn-sm btn-outline-secondary"
-                           href="sms:{{ p.customer_phone }}?body=Please%20pay%20NestGold%20reference%20{{ p.reference_id or p.checkout_request_id }}">SMS</a>
-                        {% endif %}
-                        {% if p.customer_name %}
-                        <a class="btn btn-sm btn-outline-primary"
-                           href="mailto:?subject=NestGold%20Payment%20Instructions&body=Reference%20{{ p.reference_id or p.checkout_request_id }}">Email</a>
-                        {% endif %}
-                        <div class="small text-muted mt-1">Saved: {{ p.instruction_channel or 'Not Set' }}</div>
-                    </td>
-                    <td class="d-flex gap-1 flex-wrap">
-                        <form method="POST" action="{{ url_for('admin.confirm_payment', payment_id=p.id) }}" class="d-flex gap-1">
+                        <form method="POST" action="{{ url_for('admin.confirm_payment', payment_id=p.id) }}">
                             {{ confirm_form.hidden_tag() }}
-                            {{ confirm_form.channel(class_='form-select form-select-sm') }}
-                            <button class="btn btn-sm btn-success" type="submit">Confirm</button>
+                            {{ confirm_form.channel(class_='form-select form-select-sm mb-1') }}
+                            {{ confirm_form.transaction_reference(class_='form-control form-control-sm mb-1', placeholder='Transaction Ref') }}
+                            {{ confirm_form.admin_notes(class_='form-control form-control-sm mb-1', rows='2', placeholder='Optional notes') }}
+                            <button class="btn btn-sm btn-success w-100" type="submit">Confirm</button>
                         </form>
+                    </td>
+                    <td>
                         {% if p.subscription %}
                         <form method="POST" action="{{ url_for('admin.mark_delivery_done', subscription_id=p.subscription.id) }}">
-                            {{ action_form.hidden_tag() }}
-                            <button class="btn btn-sm btn-outline-primary" type="submit">Mark Tray Delivered</button>
+                            {{ delivery_form.hidden_tag() }}
+                            {{ delivery_form.status(class_='form-select form-select-sm mb-1') }}
+                            {{ delivery_form.delivery_date(class_='form-control form-control-sm mb-1') }}
+                            {{ delivery_form.notes(class_='form-control form-control-sm mb-1', rows='2', placeholder='Delivery notes') }}
+                            <button class="btn btn-sm btn-outline-primary w-100" type="submit">Save</button>
                         </form>
+                        {% else %}
+                        <span class="text-muted">No subscription</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.payment_status == 'Confirmed' %}
+                        <a class="btn btn-sm btn-outline-dark" href="{{ url_for('admin.download_payment_receipt', payment_id=p.id) }}">PDF</a>
+                        {% else %}
+                        <span class="text-muted">Pending</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="10" class="text-muted">No payment requests yet.</td>
+                    <td colspan="10" class="text-muted">No payments found.</td>
                 </tr>
                 {% endfor %}
             </tbody>

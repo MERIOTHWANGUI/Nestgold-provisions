@@ -14,6 +14,13 @@
             </span>
         </p>
         <p><strong>Amount:</strong> KES {{ '%.2f'|format(payment.amount) }}</p>
+        {% if can_download_receipt %}
+        <a class="btn btn-success" href="{{ url_for('payments.track_receipt_download', tracking_code=payment.tracking_code or payment.reference_id or payment.checkout_request_id) }}">
+            Download Receipt (PDF)
+        </a>
+        {% else %}
+        <p class="text-muted mb-0">Receipt will be available after admin confirms payment.</p>
+        {% endif %}
     </div>
 
     <div class="card p-4">

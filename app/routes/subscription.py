@@ -7,6 +7,7 @@ from app.services.mpesa import get_manual_payment_instructions
 from app.models import (
     ManualPaymentStatus,
     Payment,
+    PaymentConfig,
     PaymentStatus,
     Subscription,
     SubscriptionPlan,
@@ -105,6 +106,7 @@ def new(plan_id):
             customer_phone=phone_mpesa,
             description=f"{plan.name} subscription - {name}",
             status=PaymentStatus.PENDING.value,
+            payment_status=ManualPaymentStatus.PENDING.value,
             manual_payment_status=ManualPaymentStatus.PENDING.value,
             payment_method="Manual",
             tracking_code=tracking_code,
@@ -114,10 +116,12 @@ def new(plan_id):
         sub.checkout_request_id = reference_id
         db.session.commit()
 
+        payment_config = PaymentConfig.query.order_by(PaymentConfig.id.desc()).first()
         instructions = get_manual_payment_instructions(
             reference_id=reference_id,
             amount_kes=plan.price_per_month,
             customer_name=name,
+            payment_config=payment_config,
         )
         flash("Payment request submitted. Follow the manual instructions below.", "info")
         return render_template(
@@ -142,7 +146,7 @@ def check(checkout_id):
     sub = Subscription.query.filter_by(checkout_request_id=checkout_id).first()
     payment = Payment.query.filter_by(checkout_request_id=checkout_id).first()
 
-    if payment and payment.status == PaymentStatus.COMPLETED.value and sub and sub.is_access_active:
+    if payment and payment.payment_status == ManualPaymentStatus.CONFIRMED.value and sub and sub.is_access_active:
         return jsonify({'status': 'completed'})
 
     if payment and payment.status in {PaymentStatus.FAILED.value, PaymentStatus.CANCELLED.value}:
@@ -174,7 +178,9 @@ def success():
         payment=payment,
         subscription=sub,
         error_message=error_message,
-        can_download_receipt=bool(checkout_id and payment and sub),
+        can_download_receipt=bool(
+            checkout_id and payment and sub and payment.payment_status == ManualPaymentStatus.CONFIRMED.value
+        ),
     )
 
 
@@ -202,6 +208,12 @@ def download_receipt():
         return Response(
             "Receipt not found. Provide a valid checkout_id tied to a completed payment/subscription.",
             status=404,
+            mimetype='text/plain'
+        )
+    if payment.payment_status != ManualPaymentStatus.CONFIRMED.value:
+        return Response(
+            "Receipt will be available after admin confirms your payment.",
+            status=400,
             mimetype='text/plain'
         )
 

@@ -112,6 +112,7 @@ class Subscription(db.Model):
     plan = db.relationship('SubscriptionPlan', back_populates='subscriptions')
     user = db.relationship('User', back_populates='subscriptions')
     payments = db.relationship('Payment', back_populates='subscription', lazy=True)
+    deliveries = db.relationship('Delivery', backref='subscription', lazy=True)
 
     @staticmethod
     def normalize_phone(phone):
@@ -192,6 +193,7 @@ class Payment(db.Model):
     amount = db.Column(db.Float, nullable=False)
     mpesa_receipt = db.Column(db.String(50))
     status = db.Column(db.String(50), default=PaymentStatus.PENDING.value, nullable=False)
+    payment_status = db.Column(db.String(20), default=ManualPaymentStatus.PENDING.value, nullable=False, index=True)
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
     checkout_request_id = db.Column(db.String(100), unique=True, index=True)
     payment_method = db.Column(db.String(30), nullable=False, default='M-Pesa')
@@ -202,6 +204,8 @@ class Payment(db.Model):
     customer_phone = db.Column(db.String(20))
     description = db.Column(db.Text)
     instruction_channel = db.Column(db.String(20))
+    admin_transaction_reference = db.Column(db.String(100))
+    admin_notes = db.Column(db.Text)
 
     subscription = db.relationship('Subscription', back_populates='payments')
 
@@ -220,6 +224,21 @@ class Delivery(db.Model):
 
     def __repr__(self):
         return f'<Delivery {self.id} - {self.status}>'
+
+
+class PaymentConfig(db.Model):
+    __tablename__ = 'payment_configs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    mpesa_paybill = db.Column(db.String(40), nullable=False, default='174379')
+    bank_name = db.Column(db.String(100), nullable=False, default='NestGold Bank')
+    bank_account_name = db.Column(db.String(100), nullable=False, default='NestGold Provisions')
+    bank_account_number = db.Column(db.String(80), nullable=False, default='1234567890')
+    instructions_footer = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<PaymentConfig {self.id}>'
 
 
 class AuditLog(db.Model):
