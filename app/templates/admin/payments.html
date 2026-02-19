@@ -21,10 +21,9 @@
         <h5 class="mb-3">Payment Details (Admin Managed)</h5>
         <form method="POST" action="{{ url_for('admin.save_payment_config') }}" class="row g-3">
             {{ config_form.hidden_tag() }}
-            <div class="col-md-3">{{ config_form.mpesa_paybill.label(class_='form-label') }}{{ config_form.mpesa_paybill(class_='form-control') }}</div>
-            <div class="col-md-3">{{ config_form.bank_name.label(class_='form-label') }}{{ config_form.bank_name(class_='form-control') }}</div>
-            <div class="col-md-3">{{ config_form.bank_account_name.label(class_='form-label') }}{{ config_form.bank_account_name(class_='form-control') }}</div>
-            <div class="col-md-3">{{ config_form.bank_account_number.label(class_='form-label') }}{{ config_form.bank_account_number(class_='form-control') }}</div>
+            <div class="col-md-4">{{ config_form.mpesa_paybill.label(class_='form-label') }}{{ config_form.mpesa_paybill(class_='form-control') }}</div>
+            <div class="col-md-4">{{ config_form.mpesa_account_name.label(class_='form-label') }}{{ config_form.mpesa_account_name(class_='form-control') }}</div>
+            <div class="col-md-4">{{ config_form.mpesa_account_number.label(class_='form-label') }}{{ config_form.mpesa_account_number(class_='form-control') }}</div>
             <div class="col-12">{{ config_form.instructions_footer.label(class_='form-label') }}{{ config_form.instructions_footer(class_='form-control', rows='2') }}</div>
             <div class="col-12">{{ config_form.submit(class_='btn btn-primary') }}</div>
         </form>

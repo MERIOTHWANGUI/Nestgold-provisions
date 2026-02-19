@@ -616,9 +616,8 @@ def save_payment_config():
         return redirect(url_for('admin.payments'))
 
     config.mpesa_paybill = form.mpesa_paybill.data.strip()
-    config.bank_name = form.bank_name.data.strip()
-    config.bank_account_name = form.bank_account_name.data.strip()
-    config.bank_account_number = form.bank_account_number.data.strip()
+    config.mpesa_account_name = form.mpesa_account_name.data.strip()
+    config.mpesa_account_number = form.mpesa_account_number.data.strip()
     config.instructions_footer = (form.instructions_footer.data or '').strip() or None
     db.session.commit()
     flash("Payment details updated.", "success")

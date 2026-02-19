@@ -231,6 +231,8 @@ class PaymentConfig(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     mpesa_paybill = db.Column(db.String(40), nullable=False, default='174379')
+    mpesa_account_name = db.Column(db.String(100), nullable=False, default='NestGold Provisions')
+    mpesa_account_number = db.Column(db.String(80), nullable=False, default='1234567890')
     bank_name = db.Column(db.String(100), nullable=False, default='NestGold Bank')
     bank_account_name = db.Column(db.String(100), nullable=False, default='NestGold Provisions')
     bank_account_number = db.Column(db.String(80), nullable=False, default='1234567890')

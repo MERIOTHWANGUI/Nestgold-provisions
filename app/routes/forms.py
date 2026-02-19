@@ -54,8 +54,7 @@ class DeliveryUpdateForm(FlaskForm):
 
 class PaymentConfigForm(FlaskForm):
     mpesa_paybill = StringField("M-Pesa Paybill", validators=[DataRequired(), Length(max=40)])
-    bank_name = StringField("Bank Name", validators=[DataRequired(), Length(max=100)])
-    bank_account_name = StringField("Bank Account Name", validators=[DataRequired(), Length(max=100)])
-    bank_account_number = StringField("Bank Account Number", validators=[DataRequired(), Length(max=80)])
+    mpesa_account_name = StringField("M-Pesa Account Name", validators=[DataRequired(), Length(max=100)])
+    mpesa_account_number = StringField("M-Pesa Account Number", validators=[DataRequired(), Length(max=80)])
     instructions_footer = TextAreaField("Instruction Footer", validators=[Length(max=500)])
     submit = SubmitField("Save Payment Details")

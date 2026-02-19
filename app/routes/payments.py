@@ -109,9 +109,8 @@ def track_receipt_download(tracking_code):
     paid_at = payment.payment_date.strftime("%Y-%m-%d %H:%M:%S") if payment.payment_date else "-"
     payment_config = PaymentConfig.query.order_by(PaymentConfig.id.desc()).first()
     paybill = payment_config.mpesa_paybill if payment_config else "174379"
-    bank_name = payment_config.bank_name if payment_config else "NestGold Bank"
-    bank_acc_name = payment_config.bank_account_name if payment_config else "NestGold Provisions"
-    bank_acc_no = payment_config.bank_account_number if payment_config else "1234567890"
+    mpesa_acc_name = payment_config.mpesa_account_name if payment_config else "NestGold Provisions"
+    mpesa_acc_no = payment_config.mpesa_account_number if payment_config else ref
     tracking_token = payment.tracking_code or payment.reference_id or payment.checkout_request_id or "-"
 
     if payment.payment_status == ManualPaymentStatus.CONFIRMED.value:
@@ -146,10 +145,9 @@ def track_receipt_download(tracking_code):
             "",
             "How to pay:",
             f"M-Pesa Paybill: {paybill}",
-            f"Account Number: {ref}",
-            f"Bank: {bank_name}",
-            f"Bank Account Name: {bank_acc_name}",
-            f"Bank Account Number: {bank_acc_no}",
+            f"Account Name: {mpesa_acc_name}",
+            f"Account Number: {mpesa_acc_no}",
+            f"Payment Note Reference: {ref}",
             "",
             "Keep this slip to recover your tracking details any time.",
         ]
