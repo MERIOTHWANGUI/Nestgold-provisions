@@ -660,6 +660,7 @@ def delete_payment(payment_id):
 
     if sub:
         remaining = Payment.query.filter_by(subscription_id=sub.id).count()
+        delivery_rows = Delivery.query.filter_by(subscription_id=sub.id).count()
         confirmed_left = Payment.query.filter_by(
             subscription_id=sub.id,
             payment_status=ManualPaymentStatus.CONFIRMED.value
@@ -670,7 +671,7 @@ def delete_payment(payment_id):
             sub.current_period_end = datetime.utcnow()
             sub.delivery_status = "Pending"
 
-        if remaining == 0 and sub.status == SubscriptionStatus.PENDING.value:
+        if remaining == 0 and delivery_rows == 0 and sub.status == SubscriptionStatus.PENDING.value:
             db.session.delete(sub)
 
     db.session.commit()
