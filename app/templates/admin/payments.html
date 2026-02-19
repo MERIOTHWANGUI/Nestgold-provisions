@@ -34,9 +34,14 @@
                     <td>KES {{ '%.2f'|format(p.amount) }}</td>
                     <td>{{ p.reference_id or p.checkout_request_id or '-' }}</td>
                     <td>
-                        <a href="{{ url_for('payments.track_payment', tracking_code=p.tracking_code or p.reference_id) }}">
-                            {{ p.tracking_code or '-' }}
+                        {% set track_token = p.tracking_code or p.reference_id or p.checkout_request_id %}
+                        {% if track_token %}
+                        <a href="{{ url_for('payments.track_payment', tracking_code=track_token) }}">
+                            {{ p.tracking_code or p.reference_id or p.checkout_request_id }}
                         </a>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
                     </td>
                     <td>
                         <span class="badge {% if p.manual_payment_status == 'Confirmed' %}bg-success{% else %}bg-warning text-dark{% endif %}">

@@ -80,7 +80,9 @@ def payment_request():
 def track_payment(tracking_code):
     token = (tracking_code or "").strip()
     payment = Payment.query.filter(
-        (Payment.tracking_code == token) | (Payment.reference_id == token.upper())
+        (Payment.tracking_code == token)
+        | (Payment.reference_id == token.upper())
+        | (Payment.checkout_request_id == token)
     ).first_or_404()
 
     subscription = payment.subscription
