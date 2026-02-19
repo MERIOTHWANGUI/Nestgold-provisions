@@ -19,8 +19,7 @@ def get_manual_payment_instructions(reference_id, amount_kes, customer_name=None
     paybill = getattr(payment_config, "mpesa_paybill", None) or MPESA_PAYBILL
     account_name = getattr(payment_config, "mpesa_account_name", None) or MPESA_ACCOUNT_NAME
     account_number = getattr(payment_config, "mpesa_account_number", None) or reference_id
-    bank_name = (getattr(payment_config, "bank_name", None) or "").strip()
-    bank_line = f"Alternative Bank Option: {bank_name}\n\n" if bank_name else ""
+    bank_name = (getattr(payment_config, "bank_name", None) or "").strip() or "-"
     footer = getattr(payment_config, "instructions_footer", None) or (
         "After payment, keep your receipt and share it with admin via WhatsApp/SMS/email."
     )
@@ -32,8 +31,8 @@ def get_manual_payment_instructions(reference_id, amount_kes, customer_name=None
         f"Business Number: {paybill}\n"
         f"Account Name: {account_name}\n"
         f"Account Number: {account_number}\n"
+        f"Bank: {bank_name}\n"
         f"Use Reference ID in your payment note: {reference_id}\n\n"
-        f"{bank_line}"
         f"{footer}"
     )
 
