@@ -431,26 +431,39 @@ def delete_subscription(sub_id):
         return redirect(url_for('admin.dashboard'))
 
     subscription = Subscription.query.get_or_404(sub_id)
+    has_confirmed_payment = Payment.query.filter_by(
+        subscription_id=subscription.id,
+        payment_status=ManualPaymentStatus.CONFIRMED.value,
+    ).first() is not None
+    delivery_completed = (subscription.delivery_status == "Completed") or int(subscription.trays_remaining or 0) == 0
 
-    has_history = Payment.query.filter_by(subscription_id=subscription.id).first() or Delivery.query.filter_by(subscription_id=subscription.id).first()
-    if has_history:
-        subscription.status = SubscriptionStatus.CANCELLED.value
-        subscription.current_period_end = datetime.utcnow()
-        subscription.delivery_status = "Cancelled"
-        db.session.commit()
-        flash(
-            f'Subscription #{sub_id} has payment/delivery history. It was cancelled instead of deleted.',
-            'warning'
-        )
-        return redirect(url_for('admin.dashboard'))
+    if has_confirmed_payment and delivery_completed:
+        try:
+            Delivery.query.filter_by(subscription_id=subscription.id).delete(synchronize_session=False)
+            Payment.query.filter_by(subscription_id=subscription.id).delete(synchronize_session=False)
+            db.session.delete(subscription)
+            db.session.commit()
+            flash(
+                f'Subscription #{sub_id} deleted (completed delivery + confirmed payment).',
+                'success'
+            )
+            return redirect(url_for('admin.dashboard'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('Unable to delete completed subscription right now.', 'warning')
+            return redirect(url_for('admin.dashboard'))
 
-    try:
-        db.session.delete(subscription)
-        db.session.commit()
-        flash(f'Subscription #{sub_id} deleted successfully.', 'success')
-    except IntegrityError:
-        db.session.rollback()
-        flash('Unable to delete subscription right now.', 'warning')
+    subscription.status = SubscriptionStatus.CANCELLED.value
+    subscription.current_period_end = datetime.utcnow()
+    subscription.delivery_status = "Cancelled"
+    db.session.commit()
+    flash(
+        (
+            f'Subscription #{sub_id} was cancelled. '
+            'Hard delete is only allowed after confirmed payment and completed delivery.'
+        ),
+        'warning'
+    )
 
     return redirect(url_for('admin.dashboard'))
 
