@@ -1,0 +1,112 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Feedback - NestGold Provisions{% endblock %}
+
+{% block content %}
+<section class="py-4">
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4 p-md-5">
+                    <h1 class="h3 fw-bold mb-2">Rate Your Experience</h1>
+                    <p class="text-muted mb-4">Share a quick rating and comment.</p>
+
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            <label for="{{ form.name.id }}" class="form-label fw-semibold">Your Name</label>
+                            {{ form.name(class_="form-control", placeholder="Enter your name") }}
+                            {% for error in form.name.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold d-block">Star Rating</label>
+                            <div class="star-rating" role="radiogroup" aria-label="Star rating">
+                                {% for subfield in form.rating %}
+                                    {{ subfield(class_="star-input", id="star" ~ subfield.data) }}
+                                    <label for="star{{ subfield.data }}" title="{{ subfield.data }} stars"><i class="bi bi-star-fill"></i></label>
+                                {% endfor %}
+                            </div>
+                            {% for error in form.rating.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.comment.id }}" class="form-label fw-semibold">Comment</label>
+                            {{ form.comment(class_="form-control", rows="4", placeholder="Tell us what you liked or what we can improve.") }}
+                            {% for error in form.comment.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        {{ form.submit(class_="btn btn-warning") }}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="h5 fw-bold mb-3">Recent Feedback</h2>
+
+            {% if feedback_items %}
+                {% for item in feedback_items %}
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                <strong>{{ item.name }}</strong>
+                                <small class="text-muted">{{ item.created_at.strftime('%b %d, %Y %I:%M %p') }}</small>
+                            </div>
+                            <div class="mb-2">
+                                {% for n in range(1, 6) %}
+                                    {% if n <= item.rating %}
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                    {% else %}
+                                        <i class="bi bi-star text-muted"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <p class="mb-0">{{ item.comment }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-light border">No feedback yet. Be the first to leave a review.</div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<style>
+    .star-rating {
+        direction: rtl;
+        display: inline-flex;
+        gap: 0.2rem;
+    }
+
+    .star-input {
+        display: none;
+    }
+
+    .star-rating label {
+        font-size: 2rem;
+        color: #d0d4da;
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.2s ease;
+    }
+
+    .star-rating label:hover,
+    .star-rating label:hover ~ label,
+    .star-input:checked ~ label {
+        color: #ffb400;
+    }
+</style>
+{% endblock %}

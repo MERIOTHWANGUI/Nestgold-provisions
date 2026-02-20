@@ -5,6 +5,17 @@
 {% block content %}
 <div class="container my-5">
 
+    <!-- First Order Trust Banner -->
+    <section class="mb-4 p-4 rounded-3 border" style="background-color: #e9f9ee; border-color: #cfeedd !important;">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <h2 class="h5 mb-1">First time ordering?</h2>
+                <p class="mb-0 text-muted">Pay on Delivery is available for your first order.</p>
+            </div>
+            <a href="{{ url_for('subscription.new', plan_id=plans[0].id) }}" class="btn btn-success">Order Now</a>
+        </div>
+    </section>
+
     <!-- Hero Section -->
    <!-- Hero Section -->
 <section class="container py-5">
@@ -17,9 +28,7 @@
             </h1>
 
             <p class="lead text-muted mb-4">
-                NestGold Provisions was created to give families access to guaranteed fresh, farm-raised eggs delivered weekly — without uncertainty, or compromise.
-
-We believe protein should be pure, reliable, and accessible.
+               We help estate families secure same-day fresh egg delivery so they never run out or waste time traveling to stores.
 
             </p>
 
@@ -134,3 +143,4 @@ We believe protein should be pure, reliable, and accessible.
 
 </div>
 {% endblock %}
+

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="NestGold Provisions – Fresh farm eggs delivered weekly. Subscribe for reliable delivery in your area.">
+    <meta name="description" content="NestGold Provisions â€“ Fresh farm eggs delivered weekly. Subscribe for reliable delivery in your area.">
 <meta name="keywords" content="NestGold, Provisions, fresh eggs, egg delivery, subscription eggs">
 <meta name="robots" content="index, follow">
 
@@ -195,7 +195,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light shadow-sm mb-4">
         <div class="container">
-            <a class="navbar-brand fw-bold fs-4" href="{{ url_for('main.index') }}">🥚 NestGold Provisions</a>
+            <a class="navbar-brand fw-bold fs-4" href="{{ url_for('main.index') }}">ðŸ¥š NestGold Provisions</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -204,6 +204,7 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('main.index') }}">Plans</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('main.about') }}">about</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('main.contact') }}">Contact</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.feedback') }}">Feedback</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('payments.track_lookup') }}">Track Order</a></li>
                     {% if current_user.is_authenticated and current_user.is_admin %}
     <li class="nav-item">
@@ -247,7 +248,7 @@
     <!-- Footer -->
     <footer>
         <div class="container">
-            <p class="mb-0">© 2026 NestGold Provisions – Fresh eggs, delivered reliably</p>
+            <p class="mb-0">Â© 2026 NestGold Provisions â€“ Fresh eggs, delivered reliably</p>
         </div>
     </footer>
 
@@ -256,3 +257,4 @@
     {% block scripts %}{% endblock %}
 </body>
 </html>
+

@@ -1,5 +1,5 @@
-# app/routes/forms.py
-from wtforms import PasswordField, BooleanField, DecimalField, TextAreaField, DateField
+﻿# app/routes/forms.py
+from wtforms import PasswordField, BooleanField, DecimalField, TextAreaField, DateField, RadioField
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Length, Regexp, NumberRange
@@ -75,3 +75,15 @@ class PaymentConfigForm(FlaskForm):
     )
     instructions_footer = TextAreaField("Instruction Footer", validators=[Length(max=500)])
     submit = SubmitField("Save Payment Details")
+
+class FeedbackForm(FlaskForm):
+    name = StringField("Your Name", validators=[DataRequired(), Length(max=100)])
+    rating = RadioField(
+        "Star Rating",
+        choices=[(5, "5"), (4, "4"), (3, "3"), (2, "2"), (1, "1")],
+        coerce=int,
+        validators=[DataRequired()],
+    )
+    comment = TextAreaField("Comment", validators=[DataRequired(), Length(max=500)])
+    submit = SubmitField("Send Feedback")
+

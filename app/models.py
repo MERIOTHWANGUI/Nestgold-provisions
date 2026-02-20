@@ -1,4 +1,4 @@
-# app/models.py
+﻿# app/models.py
 import json
 import re
 from datetime import datetime, timedelta
@@ -243,6 +243,19 @@ class PaymentConfig(db.Model):
         return f'<PaymentConfig {self.id}>'
 
 
+
+
+class Feedback(db.Model):
+    __tablename__ = "feedback"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return f"<Feedback {self.id} - {self.rating} stars>"
 class AuditLog(db.Model):
     __tablename__ = 'audit_logs'
 
@@ -350,3 +363,4 @@ def _write_audit_entries(session, flush_context):
             ))
     finally:
         session.info['audit_disabled'] = False
+
